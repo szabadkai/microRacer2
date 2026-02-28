@@ -1,7 +1,9 @@
 export class Car {
-  constructor(x, y) {
+  constructor(x, y, color = '#00ffcc', controls = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'Space' }) {
     this.x = x;
     this.y = y;
+    this.color = color;
+    this.controls = controls;
     
     // Physics properties
     this.heading = 0; // Where the nose points (radians)
@@ -19,23 +21,46 @@ export class Car {
     
     // State
     this.isDrifting = false;
+    this.onGrass = false;
     this.throttle = 0;
     this.skidmarks = [];          // Simple trail for visuals
+
+    // Boost
+    this.boostLevel = 0;
+    this.maxBoost = 100;
+    this.isBoosting = false;
   }
 
-  update(dt, input) {
-    // 1. Handle Input
+  update(dt, input, trackInfo = { isOffTrack: false }) {
+    this.onGrass = trackInfo.isOffTrack;
+
     this.throttle = 0;
-    if (input.isDown('ArrowUp') || input.isDown('KeyW')) this.throttle = 1;
-    if (input.isDown('ArrowDown') || input.isDown('KeyS')) this.throttle = -0.5;
+    let steering = 0;
+    let attemptingBoost = false;
+
+    // Keyboard Input
+    if (input.isDown(this.controls.up)) this.throttle = 1;
+    if (input.isDown(this.controls.down)) this.throttle = -0.5;
+    if (input.isDown(this.controls.left)) steering = -1;
+    if (input.isDown(this.controls.right)) steering = 1;
+    if (input.isDown(this.controls.boost)) attemptingBoost = true;
+
+    // Gamepad Input overlay
+    if (this.gamepadIndex !== undefined) {
+      if (input.gamepadManager) {
+        const gpThrottle = input.gamepadManager.getThrottle(this.gamepadIndex);
+        if (gpThrottle !== 0) this.throttle = gpThrottle;
+        
+        const gpSteer = input.gamepadManager.getSteer(this.gamepadIndex);
+        if (gpSteer !== 0) steering = gpSteer;
+        
+        if (input.gamepadManager.isBoosting(this.gamepadIndex)) attemptingBoost = true;
+      }
+    }
     
     const speed = Math.hypot(this.velocity.x, this.velocity.y);
     // Only steer if moving
     const speedFactor = Math.min(speed / 100, 1);
-    
-    let steering = 0;
-    if (input.isDown('ArrowLeft') || input.isDown('KeyA')) steering = -1;
-    if (input.isDown('ArrowRight') || input.isDown('KeyD')) steering = 1;
     
     // If going backward, invert steering for intuitive controls
     const forwardSpeed = this.velocity.x * Math.cos(this.heading) + this.velocity.y * Math.sin(this.heading);
@@ -58,17 +83,37 @@ export class Car {
       this.isDrifting = false;
     }
 
-    // 4. Apply Forces
+    // 4. Boost Logic
+    this.isBoosting = false;
+    if (attemptingBoost && this.boostLevel > 0) {
+      this.isBoosting = true;
+      this.boostLevel -= 30 * dt; // Drain rate
+      if (this.boostLevel < 0) this.boostLevel = 0;
+    } else if (this.isDrifting) {
+      this.boostLevel += 15 * dt; // Fill rate when drifting (and not boosting)
+      if (this.boostLevel > this.maxBoost) this.boostLevel = this.maxBoost;
+    }
+
+    // 5. Apply Forces
+    let activeAcceleration = this.acceleration;
+    let activeMaxSpeed = this.maxSpeed;
+    if (this.isBoosting) {
+      activeAcceleration *= 2;
+      activeMaxSpeed *= 1.5;
+    }
+
     // Engine acceleration
     if (this.throttle !== 0) {
-      const accelForce = this.throttle * this.acceleration * dt;
+      const finalAccel = this.onGrass ? activeAcceleration * 0.3 : activeAcceleration;
+      const accelForce = this.throttle * finalAccel * dt;
       this.velocity.x += Math.cos(this.heading) * accelForce;
       this.velocity.y += Math.sin(this.heading) * accelForce;
     }
 
     // Apply Drag (air/rolling friction)
-    this.velocity.x *= this.friction;
-    this.velocity.y *= this.friction;
+    const activeFriction = this.onGrass ? 0.90 : this.friction; // Harsh friction on grass
+    this.velocity.x *= activeFriction;
+    this.velocity.y *= activeFriction;
 
     // Apply Lateral Grip (pull velocity toward heading)
     if (speed > 10) {
@@ -83,10 +128,11 @@ export class Car {
     }
 
     // Cap at max speed
+    const finalMaxSpeed = this.onGrass ? activeMaxSpeed * 0.4 : activeMaxSpeed;
     const currentSpeed = Math.hypot(this.velocity.x, this.velocity.y);
-    if (currentSpeed > this.maxSpeed) {
-      this.velocity.x = (this.velocity.x / currentSpeed) * this.maxSpeed;
-      this.velocity.y = (this.velocity.y / currentSpeed) * this.maxSpeed;
+    if (currentSpeed > finalMaxSpeed) {
+      this.velocity.x = (this.velocity.x / currentSpeed) * finalMaxSpeed;
+      this.velocity.y = (this.velocity.y / currentSpeed) * finalMaxSpeed;
     }
 
     // Apply velocity to position
@@ -132,7 +178,7 @@ export class Car {
     ctx.fillRect(-12, -8, 24, 16);
 
     // Car body
-    ctx.fillStyle = this.isDrifting ? '#ff3366' : '#00ffcc'; // Turn pink when drifting
+    ctx.fillStyle = this.isDrifting ? '#ff3366' : this.color; // Turn pink when drifting, otherwise use designated color
     ctx.fillRect(-15, -10, 30, 20);
 
     // Headlights effect

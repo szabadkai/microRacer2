@@ -24,16 +24,329 @@ html {
 
 #ui {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 24px;
-  font-weight: 800;
-  text-shadow: 0 0 10px var(--accent-color);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 10;
 }
 
+#minimapContainer {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.player-hud {
+  position: absolute;
+  top: 20px;
+  font-size: 24px;
+  font-weight: 800;
+  text-shadow: 0 0 10px var(--accent-color);
+}
+
+#hud-p1 {
+  left: 20px;
+  text-shadow: 0 0 10px #00ffcc;
+}
+
+#hud-p2 {
+  right: 20px;
+  text-align: right;
+  text-shadow: 0 0 10px #ff00ff;
+}
+
+.lapInfo {
+  font-size: 1.2rem;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+#hud-p1 .lapInfo {
+  color: #00ffcc;
+}
+
+#hud-p2 .lapInfo {
+  color: #ff00ff;
+}
+
+/* Optional: Add some pulsating animations later if desired */
+
 #scoreValue {
   color: var(--accent-color);
   font-family: monospace;
+}
+
+/* UI Menu Screens */
+.hidden {
+  display: none !important;
+}
+
+#menus {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Let clicks pass through except on buttons */
+  z-index: 20;
+}
+
+.menu-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(18, 18, 18, 0.85);
+  /* Semi-transparent dark bg */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  /* Catch clicks for buttons */
+}
+
+.menu-screen h1 {
+  font-size: 4rem;
+  color: var(--accent-color);
+  text-shadow: 0 0 20px var(--accent-color), 0 0 40px var(--accent-color);
+  margin-bottom: 2rem;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.menu-screen .huge-text {
+  font-size: 10rem;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+button {
+  background: transparent;
+  color: #fff;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  padding: 1rem 3rem;
+  border: 4px solid #ff00ff;
+  border-radius: 8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 15px #ff00ff, inset 0 0 15px #ff00ff;
+  text-shadow: 0 0 10px #ff00ff;
+}
+
+button:hover {
+  background: #ff00ff;
+  color: #000;
+  box-shadow: 0 0 30px #ff00ff, inset 0 0 30px #ff00ff;
+  text-shadow: none;
+}
+
+.volume-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+  width: 380px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 0, 255, 0.2);
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.volume-row label {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #ccc;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.volume-row input[type='range'] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 0, 255, 0.3);
+  outline: none;
+  cursor: pointer;
+}
+
+.volume-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ff00ff;
+  box-shadow: 0 0 8px #ff00ff;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.volume-row input[type='range']::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 16px #ff00ff;
+}
+
+.volume-row span {
+  font-size: 1rem;
+  color: #ff00ff;
+  font-weight: 700;
+  width: 40px;
+  text-align: right;
+}
+
+.stats-container {
+  display: flex;
+  gap: 4rem;
+  margin-bottom: 2rem;
+}
+
+.stats p {
+  font-size: 1.5rem;
+  margin: 0.5rem 0;
+  color: #fff;
+  text-shadow: 0 0 10px #fff;
+}
+
+.p1-stats h2,
+.p1-stats span {
+  color: #00ffcc;
+  font-family: monospace;
+}
+
+.p2-stats h2,
+.p2-stats span {
+  color: #ff00ff;
+  font-family: monospace;
+}
+
+.boostContainer {
+  position: absolute;
+  bottom: -200px;
+  /* Relative to the HUD top... so let's use fixed pos */
+}
+
+/* Fix boost container to absolute screen bottom */
+#hud-p1 .boostContainer {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 300px;
+  height: 20px;
+  border: 2px solid #00ffcc;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 10px #00ffcc;
+}
+
+#hud-p2 .boostContainer {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  height: 20px;
+  border: 2px solid #ff00ff;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 10px #ff00ff;
+}
+
+.boostBar {
+  width: 0%;
+  height: 100%;
+  transition: width 0.1s linear;
+}
+
+#boostBar1 {
+  background: #00ffcc;
+  box-shadow: 0 0 10px #00ffcc;
+}
+
+#boostBar2 {
+  background: #ff00ff;
+  box-shadow: 0 0 10px #ff00ff;
+  float: right;
+  /* Drain from left by sticking to right, or just normal */
+}
+
+/* Toggle Switch (used for ghost setting) */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 0, 255, 0.2);
+  border: 2px solid rgba(255, 0, 255, 0.5);
+  border-radius: 28px;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #888;
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.toggle-switch input:checked+.toggle-slider {
+  background: rgba(255, 0, 255, 0.35);
+  border-color: #ff00ff;
+  box-shadow: 0 0 10px #ff00ff;
+}
+
+.toggle-switch input:checked+.toggle-slider::before {
+  transform: translate(24px, -50%);
+  background: #ff00ff;
+  box-shadow: 0 0 8px #ff00ff;
 }
