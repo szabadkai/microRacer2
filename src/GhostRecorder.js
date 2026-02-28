@@ -102,7 +102,7 @@ export class GhostPlayer {
     }
   }
 
-  /** Draw the ghost car as a translucent version of the player car. */
+  /** Draw the ghost car as a translucent, desaturated version of the player car. */
   draw(ctx) {
     if (this.done || this.frames.length === 0) return;
 
@@ -116,23 +116,14 @@ export class GhostPlayer {
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(-12, -8, 24, 16);
 
-    // Body
-    const bodyColor = this.isDrifting ? '#ff3366' : this.color;
-    ctx.fillStyle = bodyColor;
+    // Body — always gray (desaturated)
+    ctx.fillStyle = '#888888';
     ctx.fillRect(-15, -10, 30, 20);
 
     // Windshield
-    ctx.fillStyle = '#121212';
+    ctx.fillStyle = '#333333';
     ctx.fillRect(0, -8, 8, 16);
 
-    ctx.restore();
-
-    // Ghost label — drawn at full alpha so it's readable
-    ctx.save();
-    ctx.font = 'bold 14px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText('👻', this.x, this.y - 22);
     ctx.restore();
   }
 }
