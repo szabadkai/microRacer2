@@ -382,7 +382,8 @@ function updateHUD(car) {
   if (car.targetSector === 2 && progressRatio > sector2 && progressRatio < sector3) car.targetSector = 3;
   if (car.targetSector === 3 && progressRatio > sector3 && progressRatio < lapEnd) car.targetSector = 4;
   
-  if (car.targetSector === 4 && (progressRatio > lapEnd || progressRatio < lapStart)) {
+  // Lap completes only when crossing the start/finish line (progressRatio near 0)
+  if (car.targetSector === 4 && progressRatio < lapStart) {
     if (car.currentLapTime > 2.0) {
       const recorder = ghostRecorders[car.playerIndex];
       const isNewBest = recorder && recorder.onLapComplete(car.currentLapTime);
