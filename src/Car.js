@@ -19,6 +19,10 @@ export class Car {
     this.driftThreshold = 0.4;    // Slip angle (radians) at which traction breaks
     this.recoveryThreshold = 0.2; // Slip angle at which traction is regained
     
+    // Steering smoothing
+    this.smoothedSteering = 0;    // Current smoothed steering value
+    this.steeringSmoothing = 8;   // How fast steering responds (higher = faster, more direct)
+    
     // State
     this.isDrifting = false;
     this.onGrass = false;
@@ -58,6 +62,11 @@ export class Car {
       }
     }
     
+    // Apply steering smoothing for more gradual feel
+    // Interpolate toward target steering value
+    const smoothingRate = this.steeringSmoothing * dt;
+    this.smoothedSteering += (steering - this.smoothedSteering) * Math.min(smoothingRate, 1);
+    
     const speed = Math.hypot(this.velocity.x, this.velocity.y);
     // Only steer if moving
     const speedFactor = Math.min(speed / 100, 1);
@@ -66,7 +75,7 @@ export class Car {
     const forwardSpeed = this.velocity.x * Math.cos(this.heading) + this.velocity.y * Math.sin(this.heading);
     const steerDir = forwardSpeed >= -10 ? 1 : -1;
     
-    this.heading += steering * this.turnSpeed * dt * speedFactor * steerDir;
+    this.heading += this.smoothedSteering * this.turnSpeed * dt * speedFactor * steerDir;
 
     // 2. Calculate Slip Angle
     let velocityAngle = speed > 5 ? Math.atan2(this.velocity.y, this.velocity.x) : this.heading;
