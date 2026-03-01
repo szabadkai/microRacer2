@@ -217,6 +217,7 @@ function updateControlsDisplay() {
       <div class="control-item" data-player="${i + 1}">
         <span class="player-label">Player ${i + 1}</span>
         <span class="keys">${controls.display}</span>
+        <span class="boost-key">Boost: ${controls.boostDisplay}</span>
       </div>
     `);
   }
@@ -228,15 +229,15 @@ function updateControlsDisplay() {
 function getPlayerControls(playerIndex) {
   switch (playerIndex) {
     case 0:
-      return { keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'ShiftRight' }, display: '↑ ↓ ← →' };
+      return { keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'ShiftRight' }, display: '↑ ↓ ← →', boostDisplay: '⇧ Shift' };
     case 1:
-      return { keys: { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', boost: 'Space' }, display: 'W A S D' };
+      return { keys: { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', boost: 'Space' }, display: 'W A S D', boostDisplay: 'Space' };
     case 2:
-      return { keys: { up: 'KeyI', down: 'KeyK', left: 'KeyJ', right: 'KeyL', boost: 'KeyU' }, display: 'I J K L' };
+      return { keys: { up: 'KeyI', down: 'KeyK', left: 'KeyJ', right: 'KeyL', boost: 'KeyU' }, display: 'I J K L', boostDisplay: 'U' };
     case 3:
-      return { keys: { up: 'Numpad8', down: 'Numpad5', left: 'Numpad4', right: 'Numpad6', boost: 'Numpad0' }, display: 'Numpad 8456' };
+      return { keys: { up: 'Numpad8', down: 'Numpad5', left: 'Numpad4', right: 'Numpad6', boost: 'Numpad0' }, display: 'Numpad 8456', boostDisplay: 'Numpad 0' };
     default:
-      return { keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'ShiftRight' }, display: '↑ ↓ ← →' };
+      return { keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'ShiftRight' }, display: '↑ ↓ ← →', boostDisplay: '⇧ Shift' };
   }
 }
 
@@ -879,6 +880,10 @@ function drawWorldForCar(car, viewWidth, viewHeight) {
   ctx.translate(-car.x, -car.y);
 
   track.draw(ctx);
+  
+  // Draw skidmarks before particles (smoke)
+  cars.forEach(c => c.drawSkidmarks(ctx));
+  
   particles.draw(ctx);
   
   if (ghostsEnabled) {

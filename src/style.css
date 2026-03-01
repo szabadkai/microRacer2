@@ -614,6 +614,14 @@ body::after {
   font-size: 0.7rem;
 }
 
+.boost-key {
+  font-family: 'Orbitron', sans-serif;
+  color: var(--tertiary-accent);
+  font-size: 0.6rem;
+  margin-left: auto;
+  text-shadow: 0 0 8px rgba(255, 204, 0, 0.4);
+}
+
 /* ============================================
    SETTINGS SCREEN
    ============================================ */

@@ -148,35 +148,73 @@ export class Car {
     this.x += this.velocity.x * dt;
     this.y += this.velocity.y * dt;
 
-    // Skidmarks
+    // Skidmarks - two tracks for left and right tires
     if (this.isDrifting) {
-      this.skidmarks.push({ x: this.x, y: this.y, age: 0 });
+      // Calculate tire positions relative to car center
+      // Tires are at the rear of the car, offset to left and right
+      const rearOffset = -12; // Rear of car
+      const trackWidth = 7;   // Distance from center to each tire
+      
+      // Left tire position
+      const leftTireX = this.x + Math.cos(this.heading) * rearOffset - Math.sin(this.heading) * trackWidth;
+      const leftTireY = this.y + Math.sin(this.heading) * rearOffset + Math.cos(this.heading) * trackWidth;
+      
+      // Right tire position
+      const rightTireX = this.x + Math.cos(this.heading) * rearOffset - Math.sin(this.heading) * (-trackWidth);
+      const rightTireY = this.y + Math.sin(this.heading) * rearOffset + Math.cos(this.heading) * (-trackWidth);
+      
+      this.skidmarks.push({
+        left: { x: leftTireX, y: leftTireY },
+        right: { x: rightTireX, y: rightTireY },
+        age: 0
+      });
     }
     this.skidmarks.forEach(mark => mark.age += dt);
-    this.skidmarks = this.skidmarks.filter(mark => mark.age < 2); // Keep marks for 2 seconds
+    this.skidmarks = this.skidmarks.filter(mark => mark.age < 3); // Keep marks for 3 seconds
   }
 
-  draw(ctx) {
-    // Draw trail
+  drawSkidmarks(ctx) {
+    // Draw two tire mark tracks (called before particles/smoke)
     if (this.skidmarks.length > 1) {
+      // Draw left tire track
       ctx.beginPath();
-      // Only draw continuous lines between close points
-      ctx.moveTo(this.skidmarks[0].x, this.skidmarks[0].y);
+      ctx.moveTo(this.skidmarks[0].left.x, this.skidmarks[0].left.y);
       for (let i = 1; i < this.skidmarks.length; i++) {
-        const p1 = this.skidmarks[i-1];
-        const p2 = this.skidmarks[i];
+        const p1 = this.skidmarks[i-1].left;
+        const p2 = this.skidmarks[i].left;
         if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 50) {
           ctx.lineTo(p2.x, p2.y);
         } else {
           ctx.moveTo(p2.x, p2.y);
         }
       }
-      ctx.strokeStyle = `rgba(255, 100, 100, 0.5)`;
-      ctx.lineWidth = 14;
+      ctx.strokeStyle = `rgba(60, 50, 40, 0.85)`;
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      
+      // Draw right tire track
+      ctx.beginPath();
+      ctx.moveTo(this.skidmarks[0].right.x, this.skidmarks[0].right.y);
+      for (let i = 1; i < this.skidmarks.length; i++) {
+        const p1 = this.skidmarks[i-1].right;
+        const p2 = this.skidmarks[i].right;
+        if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 50) {
+          ctx.lineTo(p2.x, p2.y);
+        } else {
+          ctx.moveTo(p2.x, p2.y);
+        }
+      }
+      ctx.strokeStyle = `rgba(60, 50, 40, 0.85)`;
+      ctx.lineWidth = 6;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.stroke();
     }
+  }
+
+  draw(ctx) {
 
     ctx.save();
     ctx.translate(this.x, this.y);
