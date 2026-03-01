@@ -47,7 +47,11 @@ export class Car {
     if (input.isDown(this.controls.down)) this.throttle = -0.5;
     if (input.isDown(this.controls.left)) steering = -1;
     if (input.isDown(this.controls.right)) steering = 1;
-    if (input.isDown(this.controls.boost)) attemptingBoost = true;
+    // Allow both left and right shift for boost (for player 1 / single player)
+    if (input.isDown(this.controls.boost) ||
+        (this.controls.boost === 'ShiftRight' && input.isDown('ShiftLeft'))) {
+      attemptingBoost = true;
+    }
 
     // Gamepad Input overlay
     if (this.gamepadIndex !== undefined) {

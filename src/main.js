@@ -43,7 +43,8 @@ const STATE = {
   PAUSED: 5,
   GAMEOVER: 6,
   SETTINGS: 7,
-  LEADERBOARD: 8
+  LEADERBOARD: 8,
+  FINISHING: 9
 };
 
 let gameState = STATE.SPLASH;
@@ -555,6 +556,8 @@ function startGame() {
     car.bestLapTime = Infinity;
     car.targetSector = 1;
     car.score = 0;
+    car.finished = false;
+    car.finishTime = null;
     
     cars.push(car);
     ghostRecorders.push(new GhostRecorder());
@@ -591,8 +594,11 @@ function startGame() {
   }, 1000);
 }
 
+let previousState = STATE.PLAYING;
+
 function pauseGame() {
-  if (gameState !== STATE.PLAYING) return;
+  if (gameState !== STATE.PLAYING && gameState !== STATE.FINISHING) return;
+  previousState = gameState;
   gameState = STATE.PAUSED;
   audioManager.suspend();
   showMenu(pauseMenu);
@@ -600,7 +606,7 @@ function pauseGame() {
 
 function resumeGame() {
   if (gameState !== STATE.PAUSED) return;
-  gameState = STATE.PLAYING;
+  gameState = previousState;
   audioManager.resume();
   hideAllMenus();
   lastTime = performance.now();
@@ -608,7 +614,8 @@ function resumeGame() {
 
 function endGame() {
   gameState = STATE.GAMEOVER;
-  audioManager.suspend();
+  // Don't suspend audio immediately - let music continue during game over screen
+  // audioManager.suspend();
   uiLayer.classList.add('hidden');
   
   // Save leaderboard records
@@ -622,7 +629,8 @@ function endGame() {
   if (cars.length === 1) {
     winnerText.textContent = "RACE OVER";
   } else if (cars.length > 1) {
-    const winnerCar = cars.find(c => c.currentLap > maxLaps) || cars.reduce((best, c) => 
+    // Find the winner - first player to finish or best lap time
+    const winnerCar = cars.find(c => c.finished) || cars.reduce((best, c) =>
       c.bestLapTime < best.bestLapTime ? c : best, cars[0]);
     winnerText.textContent = `PLAYER ${winnerCar.playerIndex + 1} WINS!`;
   }
@@ -650,6 +658,7 @@ function quitToMenu() {
   cars = [];
   joinedPlayers = [];
   uiLayer.classList.add('hidden');
+  audioManager.suspend();
   showMainMenu();
 }
 
@@ -810,7 +819,19 @@ function updateHUD(car) {
       if (car.currentLap <= maxLaps) {
         ui.lapValue.textContent = car.currentLap;
       } else {
-        endGame();
+        // Mark this player as finished
+        car.finished = true;
+        car.finishTime = totalRaceTime;
+        ui.lapValue.textContent = maxLaps;
+        
+        // Check if all players have finished
+        const allFinished = cars.every(c => c.finished);
+        if (allFinished) {
+          endGame();
+        } else {
+          // Switch to FINISHING state - let other players continue
+          gameState = STATE.FINISHING;
+        }
       }
       
       car.currentLapTime = 0;
@@ -843,7 +864,9 @@ function update(dt) {
     pollGamepadsForLobby();
   }
   
-  if (gameState !== STATE.PLAYING || !track) return;
+  if (gameState !== STATE.PLAYING && gameState !== STATE.FINISHING) return;
+  if (!track) return;
+  
   lastDt = dt;
   totalRaceTime += dt;
 
@@ -851,6 +874,14 @@ function update(dt) {
   let someoneDrifting = false;
 
   cars.forEach((car, i) => {
+    // Skip finished players - they don't update
+    if (car.finished) {
+      // Keep the car stationary
+      car.velocity.x = 0;
+      car.velocity.y = 0;
+      return;
+    }
+    
     const trackInfo = track.getPointInfo(car.x, car.y);
     car.update(dt, input, trackInfo);
     updateHUD(car);
