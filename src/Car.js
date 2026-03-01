@@ -182,6 +182,44 @@ export class Car {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.heading);
 
+    // Calculate speed for light intensity
+    const speed = Math.hypot(this.velocity.x, this.velocity.y);
+    const speedRatio = Math.min(speed / this.maxSpeed, 1);
+    
+    // Determine if braking (throttle < 0)
+    const isBraking = this.throttle < 0;
+    const isAccelerating = this.throttle > 0;
+    
+    // === TAILLIGHTS ===
+    // Red glow when braking, dimmer when not
+    const taillightIntensity = isBraking ? 0.8 : 0.15 + speedRatio * 0.1;
+    const taillightRadius = isBraking ? 60 : 30 + speedRatio * 15;
+    
+    // Left taillight glow
+    const taillightGradientL = ctx.createRadialGradient(-15, -7, 0, -15, -7, taillightRadius);
+    taillightGradientL.addColorStop(0, `rgba(255, ${isBraking ? 50 : 100}, ${isBraking ? 50 : 100}, ${taillightIntensity})`);
+    taillightGradientL.addColorStop(0.3, `rgba(255, ${isBraking ? 30 : 60}, ${isBraking ? 30 : 60}, ${taillightIntensity * 0.5})`);
+    taillightGradientL.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    ctx.fillStyle = taillightGradientL;
+    ctx.beginPath();
+    ctx.arc(-15, -7, taillightRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Right taillight glow
+    const taillightGradientR = ctx.createRadialGradient(-15, 7, 0, -15, 7, taillightRadius);
+    taillightGradientR.addColorStop(0, `rgba(255, ${isBraking ? 50 : 100}, ${isBraking ? 50 : 100}, ${taillightIntensity})`);
+    taillightGradientR.addColorStop(0.3, `rgba(255, ${isBraking ? 30 : 60}, ${isBraking ? 30 : 60}, ${taillightIntensity * 0.5})`);
+    taillightGradientR.addColorStop(1, 'rgba(255, 0, 0, 0)');
+    ctx.fillStyle = taillightGradientR;
+    ctx.beginPath();
+    ctx.arc(-15, 7, taillightRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Taillight bulbs (small rectangles on car back)
+    ctx.fillStyle = isBraking ? '#ff3333' : '#660000';
+    ctx.fillRect(-17, -9, 4, 4);
+    ctx.fillRect(-17, 5, 4, 4);
+
     // Car shadow
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(-12, -8, 24, 16);
@@ -190,13 +228,79 @@ export class Car {
     ctx.fillStyle = this.isDrifting ? '#ff3366' : this.color; // Turn pink when drifting, otherwise use designated color
     ctx.fillRect(-15, -10, 30, 20);
 
-    // Headlights effect
-    ctx.fillStyle = 'rgba(255, 255, 200, 0.2)';
+    // === HEADLIGHTS ===
+    // Dynamic headlight color based on acceleration
+    // Yellow-tinted headlights that get brighter with acceleration
+    let lightR = 255, lightG = 240, lightB = 180; // Warm yellow base
+    let lightAlpha = 0.12 + speedRatio * 0.12;
+    let coneLength = 70 + speedRatio * 30;
+    let coneWidth = 35 + speedRatio * 15;
+    
+    if (isAccelerating) {
+      // Brighter and more intense when accelerating
+      lightAlpha = 0.18 + speedRatio * 0.12;
+      coneLength = 85 + speedRatio * 35;
+      coneWidth = 42 + speedRatio * 18;
+    }
+    
+    if (this.isBoosting) {
+      // Intense bright yellow-white when boosting
+      lightR = 255; lightG = 250; lightB = 220;
+      lightAlpha = 0.3;
+      coneLength = 120;
+      coneWidth = 60;
+    }
+    
+    // Main headlight cone - triangular shape with gradient for soft edges
+    const headlightGradient = ctx.createLinearGradient(15, 0, 15 + coneLength, 0);
+    headlightGradient.addColorStop(0, `rgba(${lightR}, ${lightG}, ${lightB}, ${lightAlpha})`);
+    headlightGradient.addColorStop(0.4, `rgba(${lightR}, ${lightG}, ${lightB}, ${lightAlpha * 0.6})`);
+    headlightGradient.addColorStop(0.7, `rgba(${lightR}, ${lightG}, ${lightB}, ${lightAlpha * 0.25})`);
+    headlightGradient.addColorStop(1, `rgba(${lightR}, ${lightG}, ${lightB}, 0)`);
+    
+    ctx.fillStyle = headlightGradient;
+    ctx.beginPath();
+    // Traditional cone shape with slightly rounded edges
+    ctx.moveTo(15, -8);
+    ctx.lineTo(15 + coneLength, -coneWidth);
+    // Soft bottom edge with slight curve
+    ctx.quadraticCurveTo(15 + coneLength * 0.5, 0, 15 + coneLength, coneWidth);
+    ctx.lineTo(15, 8);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Soft outer glow for depth
+    const outerGlow = ctx.createLinearGradient(15, 0, 15 + coneLength * 1.2, 0);
+    outerGlow.addColorStop(0, `rgba(${lightR}, ${lightG}, ${lightB}, ${lightAlpha * 0.4})`);
+    outerGlow.addColorStop(0.5, `rgba(${lightR}, ${lightG}, ${lightB}, ${lightAlpha * 0.15})`);
+    outerGlow.addColorStop(1, `rgba(${lightR}, ${lightG}, ${lightB}, 0)`);
+    
+    ctx.fillStyle = outerGlow;
     ctx.beginPath();
     ctx.moveTo(15, -10);
-    ctx.lineTo(80, -40);
-    ctx.lineTo(80, 40);
+    ctx.lineTo(15 + coneLength * 1.2, -coneWidth * 1.3);
+    ctx.quadraticCurveTo(15 + coneLength * 0.6, 0, 15 + coneLength * 1.2, coneWidth * 1.3);
     ctx.lineTo(15, 10);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Bright headlight source points
+    const bulbGlow = ctx.createRadialGradient(15, -6, 0, 15, -6, 10);
+    bulbGlow.addColorStop(0, `rgba(255, 255, 240, 0.9)`);
+    bulbGlow.addColorStop(0.4, `rgba(${lightR}, ${lightG}, ${lightB}, 0.5)`);
+    bulbGlow.addColorStop(1, `rgba(${lightR}, ${lightG}, ${lightB}, 0)`);
+    ctx.fillStyle = bulbGlow;
+    ctx.beginPath();
+    ctx.arc(15, -6, 10, 0, Math.PI * 2);
+    ctx.fill();
+    
+    const bulbGlow2 = ctx.createRadialGradient(15, 6, 0, 15, 6, 10);
+    bulbGlow2.addColorStop(0, `rgba(255, 255, 240, 0.9)`);
+    bulbGlow2.addColorStop(0.4, `rgba(${lightR}, ${lightG}, ${lightB}, 0.5)`);
+    bulbGlow2.addColorStop(1, `rgba(${lightR}, ${lightG}, ${lightB}, 0)`);
+    ctx.fillStyle = bulbGlow2;
+    ctx.beginPath();
+    ctx.arc(15, 6, 10, 0, Math.PI * 2);
     ctx.fill();
 
     // Windshield
