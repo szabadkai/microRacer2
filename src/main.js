@@ -28,7 +28,7 @@ let ghostPlayers = [];
 let lastTime = 0;
 let lastDt = 0;
 let totalRaceTime = 0;
-const maxLaps = 3;
+const maxLaps = 5;
 
 // ============================================
 // GAME STATE

@@ -784,18 +784,22 @@ body::after {
 
 #playerSlots {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
   margin-bottom: 30px;
   justify-content: center;
+  max-width: 100%;
 }
 
 .player-slot {
   border: 2px solid #444;
-  padding: 20px;
+  padding: 15px 10px;
   border-radius: 8px;
   text-align: center;
   background: rgba(0, 255, 204, 0.05);
-  min-width: 150px;
+  min-width: 100px;
+  flex: 1 1 calc(50% - 15px);
+  max-width: 140px;
   transition: all 0.3s ease;
 }
 
