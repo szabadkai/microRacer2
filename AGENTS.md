@@ -1,1 +1,1 @@
-never try to run dev server assume it is running always.
+never try to run dev server or build the project assume it is always running.
