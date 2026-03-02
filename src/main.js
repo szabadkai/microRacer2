@@ -926,8 +926,8 @@ function resize() {
   // This ensures the car feels the same speed regardless of display resolution
   const widthScale = canvas.width / REFERENCE_WIDTH;
   const heightScale = canvas.height / REFERENCE_HEIGHT;
-  // Use the smaller scale to maintain aspect ratio feel
-  resolutionScale = Math.min(widthScale, heightScale);
+  // Use Math.max to ensure the view "covers" the screen without zooming out too much on mobile
+  resolutionScale = Math.max(widthScale, heightScale);
 }
 
 window.addEventListener('resize', resize);
