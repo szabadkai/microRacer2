@@ -285,6 +285,9 @@ export class Track {
     const shapeGenerator = TRACK_SHAPES[shapeType] || TRACK_SHAPES.loop;
     this.points = shapeGenerator(this.rng, radius, pointsCount);
     
+    // Reverse the track direction to make the starting direction correspond with arrows
+    this.points.reverse();
+    
     // Relax points for smoother curves
     this.relaxPoints(4);
     
