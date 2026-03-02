@@ -774,7 +774,8 @@ if (steeringZone) {
   let activeTouchId = null;
   let startX = 0;
   let startY = 0;
-  const steerThreshold = 30; // pixels to drag before steering registers
+  const steerThreshold = 25; // Deadzone: pixels to drag before steering registers
+  const maxSteerDistance = 120; // pixels to drag for full steering (lower value = higher sensitivity)
 
   const updateSteering = (currentX, currentY) => {
     if (steerIndicator) {
@@ -783,17 +784,22 @@ if (steeringZone) {
     }
 
     const deltaX = currentX - startX;
+    let steeringValue = 0;
 
     if (deltaX < -steerThreshold) {
       input.keys['ArrowLeft'] = true;
       input.keys['ArrowRight'] = false;
+      steeringValue = -Math.min((Math.abs(deltaX) - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
     } else if (deltaX > steerThreshold) {
       input.keys['ArrowRight'] = true;
       input.keys['ArrowLeft'] = false;
+      steeringValue = Math.min((deltaX - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
     } else {
       input.keys['ArrowLeft'] = false;
       input.keys['ArrowRight'] = false;
     }
+
+    input.analogSteering = steeringValue;
   };
 
   const handleSteerStart = (e) => {
@@ -858,6 +864,7 @@ if (steeringZone) {
       input.keys['ArrowUp'] = false;
       input.keys['ArrowLeft'] = false;
       input.keys['ArrowRight'] = false;
+      input.analogSteering = 0;
 
       if (steerIndicator) {
         steerIndicator.classList.add('hidden');
