@@ -944,6 +944,7 @@ body::after {
 }
 
 .toggle-slider {
+  width: 55px;
   position: absolute;
   inset: 0;
   background: rgba(255, 255, 255, 0.1);
@@ -957,7 +958,7 @@ body::after {
   position: absolute;
   width: 20px;
   height: 20px;
-  left: 2px;
+  left: 3px;
   top: 50%;
   transform: translateY(-50%);
   background: #666;
@@ -972,7 +973,7 @@ body::after {
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
-  transform: translate(26px, -50%);
+  transform: translate(24px, -50%);
   background: var(--primary-accent);
   box-shadow: 0 0 10px var(--primary-accent);
 }
