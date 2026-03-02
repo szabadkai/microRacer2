@@ -11,7 +11,7 @@
   --text-secondary: #888888;
   --success-color: #00ff88;
   --danger-color: #ff4466;
-  
+
   /* Player colors */
   --player1-color: #00ffcc;
   --player2-color: #ff00ff;
@@ -57,9 +57,12 @@ body::before {
 }
 
 @keyframes gridPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
   }
+
   50% {
     opacity: 1;
   }
@@ -73,10 +76,10 @@ body::after {
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(90deg, 
-    var(--primary-accent) 0%, 
-    var(--secondary-accent) 50%, 
-    var(--primary-accent) 100%);
+  background: linear-gradient(90deg,
+      var(--primary-accent) 0%,
+      var(--secondary-accent) 50%,
+      var(--primary-accent) 100%);
   box-shadow: 0 0 20px var(--primary-accent), 0 0 40px var(--secondary-accent);
   z-index: 999;
 }
@@ -241,6 +244,7 @@ body::after {
       0 0 20px var(--primary-accent),
       0 0 40px var(--primary-accent);
   }
+
   to {
     text-shadow:
       0 0 20px var(--primary-accent),
@@ -279,10 +283,12 @@ body::after {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.9;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -551,7 +557,7 @@ body::after {
   transition: color 0.2s ease;
 }
 
-.controls-info:hover + .controls-hint,
+.controls-info:hover+.controls-hint,
 .controls-hint:hover {
   color: #888;
 }
@@ -966,13 +972,13 @@ body::after {
   transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
-.toggle-switch input:checked + .toggle-slider {
+.toggle-switch input:checked+.toggle-slider {
   background: rgba(0, 255, 204, 0.2);
   border-color: var(--primary-accent);
   box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
 }
 
-.toggle-switch input:checked + .toggle-slider::before {
+.toggle-switch input:checked+.toggle-slider::before {
   transform: translate(24px, -50%);
   background: var(--primary-accent);
   box-shadow: 0 0 10px var(--primary-accent);
@@ -1127,10 +1133,13 @@ body::after {
 }
 
 @keyframes splashPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 30px rgba(0, 255, 204, 0.5));
     transform: scale(1);
   }
+
   50% {
     filter: drop-shadow(0 0 50px rgba(255, 0, 255, 0.7));
     transform: scale(1.02);
@@ -1146,10 +1155,13 @@ body::after {
 }
 
 @keyframes blink {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     text-shadow: 0 0 10px var(--primary-accent);
   }
+
   50% {
     opacity: 0.3;
     text-shadow: none;
@@ -1165,47 +1177,167 @@ body::after {
     width: 95vw;
     padding: 1.5rem;
   }
-  
+
   .menu-screen h1 {
     font-size: 1rem;
   }
-  
+
   .start-btn {
     padding: 0.8rem 1.5rem;
     font-size: 0.7rem;
   }
-  
+
   .secondary-btn {
     padding: 0.5rem 1rem;
     font-size: 0.45rem;
   }
-  
+
   .player-btn {
     width: 40px;
     height: 40px;
     font-size: 0.8rem;
   }
-  
+
   .controls-info {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-container {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .volume-controls {
     width: 90vw;
     padding: 1rem;
   }
-  
+
   #playerSlots {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .player-slot {
     min-width: 200px;
+  }
+}
+
+/* ============================================
+   MOBILE CONTROLS (v2)
+   ============================================ */
+
+.mobile-controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.mobile-controls:not(.hidden) {
+  display: block;
+}
+
+/* Steering Zone (Left Side) */
+.steering-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70%;
+  height: 100%;
+  pointer-events: auto;
+  touch-action: none;
+  /* prevent native scrolling/zooming */
+}
+
+/* Steering Visual Indicator */
+.steer-indicator {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 255, 204, 0.5);
+  background: rgba(0, 255, 204, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+  transition: opacity 0.2s;
+}
+
+.steer-indicator::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #00ffcc;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10px #00ffcc;
+}
+
+.steer-indicator.hidden {
+  display: none;
+}
+
+/* Action Buttons (Right side) */
+.action-buttons-right {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  pointer-events: auto;
+}
+
+.boost-btn {
+  width: 90px;
+  height: 90px;
+  font-size: 1.1rem;
+  font-family: 'Press Start 2P', monospace;
+  background: rgba(0, 204, 255, 0.2) !important;
+  border-color: #00ccff !important;
+  color: #00ccff !important;
+  text-shadow: 0 0 5px #00ccff;
+}
+
+/* Pause Button (Top Right) */
+.pause-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  font-size: 1.2rem;
+  pointer-events: auto;
+}
+
+/* Base Mobile Button Style */
+.control-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  backdrop-filter: blur(4px);
+  transition: transform 0.1s, background 0.1s;
+}
+
+.control-btn:active,
+.control-btn.pressed {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Hide HUD when mobile controls are visible on small screens to reduce clutter */
+@media (max-width: 700px) {
+  .mobile-controls:not(.hidden)~#ui .player-hud:not(#hud-p1) {
+    display: none;
   }
 }

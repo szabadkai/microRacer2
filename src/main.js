@@ -152,6 +152,10 @@ const controlsInfo = document.getElementById('controlsInfo');
 // Leaderboard
 const leaderboardList = document.getElementById('leaderboardList');
 const leaderboardTrackName = document.getElementById('leaderboardTrackName');
+const mobileControls = document.getElementById('mobileControls');
+
+// Touch Support State
+let touchEnabled = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || new URLSearchParams(window.location.search).has('mobile');
 
 // Initialize HUD
 uiP1.maxLapsValue.textContent = maxLaps;
@@ -211,7 +215,7 @@ function updateTrackDisplay() {
 
 function updateControlsDisplay() {
   const controlItems = [];
-  
+
   for (let i = 0; i < selectedPlayerCount; i++) {
     const controls = getPlayerControls(i);
     controlItems.push(`
@@ -222,7 +226,7 @@ function updateControlsDisplay() {
       </div>
     `);
   }
-  
+
   controlsInfo.innerHTML = controlItems.join('');
   controlsInfo.classList.toggle('single-player', selectedPlayerCount === 1);
 }
@@ -274,13 +278,13 @@ let sfxVolume = parseFloat(localStorage.getItem('sfxVolume') ?? '0.4');
 function showSettings() {
   gameState = STATE.SETTINGS;
   showMenu(settingsScreen);
-  
+
   // Sync toggle states
   const ghostToggleSettings = document.getElementById('ghostToggleSettings');
   const ghostToggleSettingsLabel = document.getElementById('ghostToggleSettingsLabel');
   ghostToggleSettings.checked = ghostsEnabled;
   ghostToggleSettingsLabel.textContent = ghostsEnabled ? 'ON' : 'OFF';
-  
+
   // Sync volume sliders
   const musicVolumeSettings = document.getElementById('musicVolumeSettings');
   const sfxVolumeSettings = document.getElementById('sfxVolumeSettings');
@@ -346,12 +350,12 @@ function showLeaderboard() {
 function loadLeaderboard() {
   const trackId = tracks[currentTrackIndex].id;
   const records = getLeaderboardRecords(trackId);
-  
+
   if (records.length === 0) {
     leaderboardList.innerHTML = '<li class="leaderboard-empty">No records yet. Complete a race!</li>';
     return;
   }
-  
+
   leaderboardList.innerHTML = records.map((record, index) => `
     <li class="leaderboard-item ${index === 0 ? 'rank-1' : ''}">
       <span class="leaderboard-rank">${index + 1}.</span>
@@ -428,11 +432,11 @@ function showLobby() {
 function updateLobbyUI() {
   const playerSlots = document.getElementById('playerSlots');
   playerSlots.innerHTML = '';
-  
+
   for (let i = 0; i < selectedPlayerCount; i++) {
     const slot = document.createElement('div');
     slot.className = `player-slot ${i < joinedPlayers.length ? `p${i + 1}` : ''}`;
-    
+
     if (i < joinedPlayers.length) {
       const player = joinedPlayers[i];
       let inputType = 'Keyboard';
@@ -447,7 +451,7 @@ function updateLobbyUI() {
       } else if (player.controls === 'numpad') {
         inputType = 'Numpad';
       }
-      
+
       slot.innerHTML = `
         <h3>PLAYER ${i + 1}</h3>
         <p>${inputType}</p>
@@ -460,10 +464,10 @@ function updateLobbyUI() {
         <p style="color: #555;">Press any key</p>
       `;
     }
-    
+
     playerSlots.appendChild(slot);
   }
-  
+
   startRaceBtn.classList.toggle('hidden', joinedPlayers.length < selectedPlayerCount);
 }
 
@@ -472,22 +476,22 @@ const VALID_INPUT_TYPES = ['arrows', 'wasd', 'ijkl', 'numpad', 'gamepad'];
 function tryJoinPlayer(inputType, gamepadIndex = null) {
   if (gameState !== STATE.LOBBY) return;
   if (joinedPlayers.length >= selectedPlayerCount) return;
-  
+
   // Validate inputType
   if (gamepadIndex === null && !VALID_INPUT_TYPES.includes(inputType)) {
     console.warn(`Invalid input type: ${inputType}`);
     return;
   }
-  
+
   const alreadyJoined = joinedPlayers.some(p => {
     if (gamepadIndex !== null) return p.gamepadIndex === gamepadIndex;
     return p.controls === inputType;
   });
-  
+
   if (alreadyJoined) return;
-  
+
   const setup = { gamepadIndex: null, controls: null, controlKeys: null };
-  
+
   if (gamepadIndex !== null) {
     setup.gamepadIndex = gamepadIndex;
     setup.controls = 'gamepad';
@@ -496,14 +500,14 @@ function tryJoinPlayer(inputType, gamepadIndex = null) {
     setup.controls = inputType;
     setup.controlKeys = getPlayerControls(joinedPlayers.length).keys;
   }
-  
+
   joinedPlayers.push(setup);
   updateLobbyUI();
 }
 
 function pollGamepadsForLobby() {
   if (gameState !== STATE.LOBBY) return;
-  
+
   gamepadManager.poll();
   for (let i = 0; i < 4; i++) {
     const gp = gamepadManager.getGamepad(i);
@@ -529,29 +533,29 @@ function startGame() {
   cars = [];
   ghostRecorders = [];
   ghostPlayers = [];
-  
+
   // Create track with selected theme, shape, and seed
   const selectedTrack = tracks[currentTrackIndex];
   track = new Track(1000, 30, selectedTrack.theme, selectedTrack.shape, selectedTrack.seed);
-  
+
   const startPos = track.getStartPos();
-  
+
   // If no players joined via lobby (single player quick start), create default player
   if (joinedPlayers.length === 0 && selectedPlayerCount === 1) {
     const controls = getPlayerControls(0);
     joinedPlayers.push({ gamepadIndex: null, controls: 'arrows', controlKeys: controls.keys });
   }
-  
+
   joinedPlayers.forEach((setup, i) => {
     const xOffset = i === 1 ? -30 : (i === 2 ? 30 : (i === 3 ? -60 : 0));
-    const dirX = Math.cos(startPos.heading + Math.PI/2) * xOffset;
-    const dirY = Math.sin(startPos.heading + Math.PI/2) * xOffset;
-    
+    const dirX = Math.cos(startPos.heading + Math.PI / 2) * xOffset;
+    const dirY = Math.sin(startPos.heading + Math.PI / 2) * xOffset;
+
     const car = new Car(startPos.x + dirX, startPos.y + dirY, playerColors[i], setup.controlKeys);
     car.heading = startPos.heading;
     car.gamepadIndex = setup.gamepadIndex;
     car.playerIndex = i;
-    
+
     car.currentLap = 1;
     car.currentLapTime = 0;
     car.bestLapTime = Infinity;
@@ -559,12 +563,12 @@ function startGame() {
     car.score = 0;
     car.finished = false;
     car.finishTime = null;
-    
+
     cars.push(car);
     ghostRecorders.push(new GhostRecorder());
     ghostPlayers.push(null);
   });
-  
+
   // Show appropriate HUDs
   document.getElementById('hud-p1').style.display = cars.length > 0 ? 'block' : 'none';
   document.getElementById('hud-p2').style.display = cars.length > 1 ? 'block' : 'none';
@@ -575,11 +579,12 @@ function startGame() {
   hideAllMenus();
   countdownMenu.classList.remove('hidden');
   uiLayer.classList.remove('hidden');
-  
+  if (touchEnabled) mobileControls.classList.remove('hidden');
+
   countdownTimer = 3;
   const countdownText = document.getElementById('countdownText');
   countdownText.textContent = countdownTimer;
-  
+
   let countInterval = setInterval(() => {
     countdownTimer--;
     if (countdownTimer > 0) {
@@ -618,14 +623,15 @@ function endGame() {
   // Don't suspend audio immediately - let music continue during game over screen
   // audioManager.suspend();
   uiLayer.classList.add('hidden');
-  
+  mobileControls.classList.add('hidden');
+
   // Save leaderboard records
   cars.forEach((car, i) => {
     if (car.bestLapTime < Infinity) {
       saveLeaderboardRecord(tracks[currentTrackIndex].id, car.bestLapTime, `Player ${i + 1}`);
     }
   });
-  
+
   const winnerText = document.getElementById('winnerText');
   if (cars.length === 1) {
     winnerText.textContent = "RACE OVER";
@@ -635,12 +641,12 @@ function endGame() {
       c.bestLapTime < best.bestLapTime ? c : best, cars[0]);
     winnerText.textContent = `PLAYER ${winnerCar.playerIndex + 1} WINS!`;
   }
-  
+
   cars.forEach((car, i) => {
-    const finalTime = document.getElementById(`finalTimeValue${i+1}`);
-    const finalBest = document.getElementById(`finalBestValue${i+1}`);
-    const finalScore = document.getElementById(`finalScoreValue${i+1}`);
-    
+    const finalTime = document.getElementById(`finalTimeValue${i + 1}`);
+    const finalBest = document.getElementById(`finalBestValue${i + 1}`);
+    const finalScore = document.getElementById(`finalScoreValue${i + 1}`);
+
     if (finalTime) finalTime.textContent = totalRaceTime.toFixed(2);
     if (finalBest) finalBest.textContent = car.bestLapTime === Infinity ? "--" : car.bestLapTime.toFixed(2);
     if (finalScore) finalScore.textContent = car.score;
@@ -659,6 +665,7 @@ function quitToMenu() {
   cars = [];
   joinedPlayers = [];
   uiLayer.classList.add('hidden');
+  mobileControls.classList.add('hidden');
   audioManager.suspend();
   showMainMenu();
 }
@@ -701,7 +708,7 @@ window.addEventListener('keydown', (e) => {
     skipSplash();
     return;
   }
-  
+
   // Lobby join
   if (gameState === STATE.LOBBY) {
     if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) {
@@ -715,7 +722,7 @@ window.addEventListener('keydown', (e) => {
     }
     return;
   }
-  
+
   // Pause toggle
   if (e.code === 'Escape') {
     if (gameState === STATE.PLAYING) {
@@ -725,6 +732,149 @@ window.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// Mobile Controls (Action Buttons)
+const mobileBtns = document.querySelectorAll('.control-btn');
+mobileBtns.forEach(btn => {
+  const key = btn.dataset.key;
+  if (!key) return;
+
+  const handleStart = (e) => {
+    if (e.cancelable) e.preventDefault();
+    input.keys[key] = true;
+    btn.classList.add('pressed');
+
+    if (key === 'Escape') {
+      if (gameState === STATE.PLAYING) pauseGame();
+      else if (gameState === STATE.PAUSED) resumeGame();
+    }
+  };
+
+  const handleEnd = (e) => {
+    if (e.cancelable) e.preventDefault();
+    input.keys[key] = false;
+    btn.classList.remove('pressed');
+  };
+
+  btn.addEventListener('touchstart', handleStart, { passive: false });
+  btn.addEventListener('touchend', handleEnd, { passive: false });
+  btn.addEventListener('touchcancel', handleEnd, { passive: false });
+
+  // Mouse fallback for testing
+  btn.addEventListener('mousedown', handleStart);
+  btn.addEventListener('mouseup', handleEnd);
+  btn.addEventListener('mouseleave', handleEnd);
+});
+
+// Steering Zone (Touch-to-accelerate, pull-to-steer)
+const steeringZone = document.getElementById('steeringZone');
+const steerIndicator = document.getElementById('steerIndicator');
+
+if (steeringZone) {
+  let activeTouchId = null;
+  let startX = 0;
+  let startY = 0;
+  const steerThreshold = 30; // pixels to drag before steering registers
+
+  const updateSteering = (currentX, currentY) => {
+    if (steerIndicator) {
+      steerIndicator.style.left = `${currentX}px`;
+      steerIndicator.style.top = `${currentY}px`;
+    }
+
+    const deltaX = currentX - startX;
+
+    if (deltaX < -steerThreshold) {
+      input.keys['ArrowLeft'] = true;
+      input.keys['ArrowRight'] = false;
+    } else if (deltaX > steerThreshold) {
+      input.keys['ArrowRight'] = true;
+      input.keys['ArrowLeft'] = false;
+    } else {
+      input.keys['ArrowLeft'] = false;
+      input.keys['ArrowRight'] = false;
+    }
+  };
+
+  const handleSteerStart = (e) => {
+    if (e.cancelable) e.preventDefault();
+    if (activeTouchId !== null) return; // already tracking a touch
+
+    const touch = e.changedTouches ? e.changedTouches[0] : e;
+    activeTouchId = e.changedTouches ? touch.identifier : 'mouse';
+
+    startX = touch.clientX;
+    startY = touch.clientY;
+
+    // Accelerate
+    input.keys['ArrowUp'] = true;
+
+    if (steerIndicator) {
+      steerIndicator.style.left = `${startX}px`;
+      steerIndicator.style.top = `${startY}px`;
+      steerIndicator.classList.remove('hidden');
+    }
+  };
+
+  const handleSteerMove = (e) => {
+    if (e.cancelable) e.preventDefault();
+    if (activeTouchId === null) return;
+
+    let touch;
+    if (e.changedTouches) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === activeTouchId) {
+          touch = e.changedTouches[i];
+          break;
+        }
+      }
+    } else {
+      touch = e;
+    }
+
+    if (touch) {
+      updateSteering(touch.clientX, touch.clientY);
+    }
+  };
+
+  const handleSteerEnd = (e) => {
+    if (e.cancelable) e.preventDefault();
+    if (activeTouchId === null) return;
+
+    let isOurTouchEnding = false;
+    if (e.changedTouches) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === activeTouchId) {
+          isOurTouchEnding = true;
+          break;
+        }
+      }
+    } else {
+      isOurTouchEnding = true; // mouse event
+    }
+
+    if (isOurTouchEnding) {
+      activeTouchId = null;
+      input.keys['ArrowUp'] = false;
+      input.keys['ArrowLeft'] = false;
+      input.keys['ArrowRight'] = false;
+
+      if (steerIndicator) {
+        steerIndicator.classList.add('hidden');
+      }
+    }
+  };
+
+  steeringZone.addEventListener('touchstart', handleSteerStart, { passive: false });
+  steeringZone.addEventListener('touchmove', handleSteerMove, { passive: false });
+  steeringZone.addEventListener('touchend', handleSteerEnd, { passive: false });
+  steeringZone.addEventListener('touchcancel', handleSteerEnd, { passive: false });
+
+  // Mouse fallback
+  steeringZone.addEventListener('mousedown', handleSteerStart);
+  window.addEventListener('mousemove', handleSteerMove);
+  window.addEventListener('mouseup', handleSteerEnd);
+}
 
 // Volume sliders
 const musicVolumeSlider = document.getElementById('musicVolume');
@@ -771,7 +921,7 @@ let resolutionScale = 1.0;
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  
+
   // Calculate resolution scale factor based on reference resolution
   // This ensures the car feels the same speed regardless of display resolution
   const widthScale = canvas.width / REFERENCE_WIDTH;
@@ -796,18 +946,18 @@ function updateHUD(car) {
     case 3: ui = uiP4; break;
     default: ui = uiP1;
   }
-  
+
   const speed = Math.hypot(car.velocity.x, car.velocity.y);
   ui.speedValue.textContent = Math.floor(speed / 10);
-  
+
   car.currentLapTime += lastDt;
   ui.lapTimeValue.textContent = car.currentLapTime.toFixed(2);
   ui.boostBar.style.width = `${car.boostLevel}%`;
-  
+
   const trackInfo = track.getPointInfo(car.x, car.y);
   const totalPoints = track.splinePoints.length;
   const progressRatio = trackInfo.progressIndex / totalPoints;
-  
+
   const sector1 = 0.25;
   const sector2 = 0.50;
   const sector3 = 0.75;
@@ -817,12 +967,12 @@ function updateHUD(car) {
   if (car.targetSector === 1 && progressRatio > sector1 && progressRatio < sector2) car.targetSector = 2;
   if (car.targetSector === 2 && progressRatio > sector2 && progressRatio < sector3) car.targetSector = 3;
   if (car.targetSector === 3 && progressRatio > sector3 && progressRatio < lapEnd) car.targetSector = 4;
-  
+
   if (car.targetSector === 4 && progressRatio < lapStart) {
     if (car.currentLapTime > 2.0) {
       const recorder = ghostRecorders[car.playerIndex];
       const isNewBest = recorder && recorder.onLapComplete(car.currentLapTime);
-      
+
       if (isNewBest) {
         ghostPlayers[car.playerIndex] = new GhostPlayer(recorder.bestFrames, car.color);
       } else if (ghostPlayers[car.playerIndex]) {
@@ -834,7 +984,7 @@ function updateHUD(car) {
         car.bestLapTime = car.currentLapTime;
         ui.bestLapValue.textContent = car.bestLapTime.toFixed(2);
       }
-      
+
       car.currentLap++;
       if (car.currentLap <= maxLaps) {
         ui.lapValue.textContent = car.currentLap;
@@ -843,7 +993,7 @@ function updateHUD(car) {
         car.finished = true;
         car.finishTime = totalRaceTime;
         ui.lapValue.textContent = maxLaps;
-        
+
         // Check if all players have finished
         const allFinished = cars.every(c => c.finished);
         if (allFinished) {
@@ -853,7 +1003,7 @@ function updateHUD(car) {
           gameState = STATE.FINISHING;
         }
       }
-      
+
       car.currentLapTime = 0;
       car.targetSector = 1;
     }
@@ -862,15 +1012,15 @@ function updateHUD(car) {
   if (car.isBoosting) {
     const backX = car.x - Math.cos(car.heading) * 15;
     const backY = car.y - Math.sin(car.heading) * 15;
-    particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random()-0.5)*0.2, car.color, 12, 0.4);
+    particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random() - 0.5) * 0.2, car.color, 12, 0.4);
   } else if (car.isDrifting) {
     car.score += Math.floor(100 * lastDt);
     ui.score.textContent = car.score;
-    
+
     if (speed > 100 && Math.random() < 0.5) {
       const backX = car.x - Math.cos(car.heading) * 10;
       const backY = car.y - Math.sin(car.heading) * 10;
-      particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random()-0.5), 'rgb(200, 200, 200)', 8, 1);
+      particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), 'rgb(200, 200, 200)', 8, 1);
     }
   }
 }
@@ -883,10 +1033,10 @@ function update(dt) {
   if (gameState === STATE.LOBBY) {
     pollGamepadsForLobby();
   }
-  
+
   if (gameState !== STATE.PLAYING && gameState !== STATE.FINISHING) return;
   if (!track) return;
-  
+
   lastDt = dt;
   totalRaceTime += dt;
 
@@ -901,14 +1051,14 @@ function update(dt) {
       car.velocity.y = 0;
       return;
     }
-    
+
     const trackInfo = track.getPointInfo(car.x, car.y);
     car.update(dt, input, trackInfo);
     updateHUD(car);
-    
+
     if (ghostRecorders[i]) ghostRecorders[i].recordFrame(car, dt);
     if (ghostsEnabled && ghostPlayers[i]) ghostPlayers[i].update(dt);
-    
+
     const speed = Math.hypot(car.velocity.x, car.velocity.y);
     if (speed > maxSpeed) maxSpeed = speed;
     if (car.isDrifting) someoneDrifting = true;
@@ -921,10 +1071,10 @@ function update(dt) {
 function drawWorldForCar(car, viewWidth, viewHeight) {
   const speed = Math.hypot(car.velocity.x, car.velocity.y);
   const targetScale = 1.0 - (speed / 800) * 0.4;
-  
+
   car.currentScale = car.currentScale || 1.0;
   car.currentScale += (targetScale - car.currentScale) * 0.05;
-  
+
   // Apply resolution scale to make gameplay consistent across displays
   const finalScale = car.currentScale * resolutionScale;
 
@@ -934,16 +1084,16 @@ function drawWorldForCar(car, viewWidth, viewHeight) {
   ctx.translate(-car.x, -car.y);
 
   track.draw(ctx);
-  
+
   // Draw skidmarks before particles (smoke)
   cars.forEach(c => c.drawSkidmarks(ctx));
-  
+
   particles.draw(ctx);
-  
+
   if (ghostsEnabled) {
     ghostPlayers.forEach(gp => { if (gp) gp.draw(ctx); });
   }
-  
+
   cars.forEach(c => c.draw(ctx));
 
   ctx.restore();
@@ -954,7 +1104,7 @@ function draw() {
   const bgColor = track?.theme?.backgroundColor || '#0a0a0a';
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
   // Draw neon grid background with theme-aware colors
   const gridColor = track?.theme?.patternColor?.replace(/[\d.]+\)$/, '0.3)') || 'rgba(40, 40, 40, 0.5)';
   ctx.strokeStyle = gridColor;
@@ -975,13 +1125,13 @@ function draw() {
 
   // Only draw world if track exists and we're in a game state
   if (!track || cars.length === 0) return;
-  
+
   if (cars.length === 1) {
     drawWorldForCar(cars[0], canvas.width, canvas.height);
   } else if (cars.length === 2) {
     // 2 players: side by side
     const halfWidth = canvas.width / 2;
-    
+
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, halfWidth, canvas.height);
@@ -996,7 +1146,7 @@ function draw() {
     ctx.translate(halfWidth, 0);
     drawWorldForCar(cars[1], halfWidth, canvas.height);
     ctx.restore();
-    
+
     // Draw split line
     ctx.strokeStyle = '#ff6600';
     ctx.lineWidth = 4;
@@ -1011,7 +1161,7 @@ function draw() {
     // 3-4 players: 2x2 grid
     const halfWidth = canvas.width / 2;
     const halfHeight = canvas.height / 2;
-    
+
     // Player 1: Top Left
     ctx.save();
     ctx.beginPath();
@@ -1019,7 +1169,7 @@ function draw() {
     ctx.clip();
     drawWorldForCar(cars[0], halfWidth, halfHeight);
     ctx.restore();
-    
+
     // Player 2: Top Right
     ctx.save();
     ctx.beginPath();
@@ -1028,7 +1178,7 @@ function draw() {
     ctx.translate(halfWidth, 0);
     drawWorldForCar(cars[1], halfWidth, halfHeight);
     ctx.restore();
-    
+
     // Player 3: Bottom Left
     ctx.save();
     ctx.beginPath();
@@ -1037,7 +1187,7 @@ function draw() {
     ctx.translate(0, halfHeight);
     drawWorldForCar(cars[2], halfWidth, halfHeight);
     ctx.restore();
-    
+
     // Player 4: Bottom Right (if exists)
     if (cars.length > 3) {
       ctx.save();
@@ -1048,40 +1198,40 @@ function draw() {
       drawWorldForCar(cars[3], halfWidth, halfHeight);
       ctx.restore();
     }
-    
+
     // Draw split lines
     ctx.strokeStyle = '#ff6600';
     ctx.lineWidth = 4;
     ctx.shadowColor = '#ff6600';
     ctx.shadowBlur = 10;
-    
+
     // Vertical line
     ctx.beginPath();
     ctx.moveTo(halfWidth, 0);
     ctx.lineTo(halfWidth, canvas.height);
     ctx.stroke();
-    
+
     // Horizontal line
     ctx.beginPath();
     ctx.moveTo(0, halfHeight);
     ctx.lineTo(canvas.width, halfHeight);
     ctx.stroke();
-    
+
     ctx.shadowBlur = 0;
   }
 
   if (cars.length > 0) {
-    track.drawMinimap(ctx, cars[0].x, cars[0].y); 
+    track.drawMinimap(ctx, cars[0].x, cars[0].y);
   }
 }
 
 function gameLoop(timestamp) {
-  const dt = Math.min((timestamp - lastTime) / 1000, 0.1); 
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
-  
+
   update(dt);
   draw();
-  
+
   requestAnimationFrame(gameLoop);
 }
 

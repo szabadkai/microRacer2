@@ -4,250 +4,264 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>microRacer 2 - NEON DRIFT</title>
 </head>
 
-<body>
-  <div id="ui">
-    <!-- Minimap Container at the top center -->
-    <div id="minimapContainer"></div>
+<!-- Mobile Controls -->
+<div id="mobileControls" class="mobile-controls hidden">
+  <!-- Touch zone covers left 60% of screen -->
+  <div id="steeringZone" class="steering-zone">
+    <div id="steerIndicator" class="steer-indicator hidden"></div>
+  </div>
 
-    <!-- Player 1 HUD (Left) -->
-    <div id="hud-p1" class="player-hud">
-      <div class="score">P1 Score: <span id="scoreValue1">0</span></div>
-      <div class="lapInfo">
-        Speed: <span id="speedValue1">0</span> mph<br>
-        Lap: <span id="lapValue1">1</span> / <span id="maxLapsValue1">3</span><br>
-        Time: <span id="lapTimeValue1">0.00</span>s<br>
-        Best: <span id="bestLapValue1">--</span>
+  <div class="action-buttons-right">
+    <button id="btn-boost" class="control-btn boost-btn" data-key="ShiftRight">BST</button>
+  </div>
+
+  <button id="btn-pause" class="control-btn pause-btn" data-key="Escape">⏸</button>
+</div>
+
+<div id="ui">
+  <!-- Minimap Container at the top center -->
+  <div id="minimapContainer"></div>
+
+  <!-- Player 1 HUD (Left) -->
+  <div id="hud-p1" class="player-hud">
+    <div class="score">P1 Score: <span id="scoreValue1">0</span></div>
+    <div class="lapInfo">
+      Speed: <span id="speedValue1">0</span> mph<br>
+      Lap: <span id="lapValue1">1</span> / <span id="maxLapsValue1">3</span><br>
+      Time: <span id="lapTimeValue1">0.00</span>s<br>
+      Best: <span id="bestLapValue1">--</span>
+    </div>
+    <div class="boostContainer">
+      <div id="boostBar1" class="boostBar"></div>
+    </div>
+  </div>
+
+  <!-- Player 2 HUD (Right) -->
+  <div id="hud-p2" class="player-hud">
+    <div class="score">P2 Score: <span id="scoreValue2">0</span></div>
+    <div class="lapInfo">
+      Speed: <span id="speedValue2">0</span> mph<br>
+      Lap: <span id="lapValue2">1</span> / <span id="maxLapsValue2">3</span><br>
+      Time: <span id="lapTimeValue2">0.00</span>s<br>
+      Best: <span id="bestLapValue2">--</span>
+    </div>
+    <div class="boostContainer">
+      <div id="boostBar2" class="boostBar"></div>
+    </div>
+  </div>
+
+  <!-- Player 3 HUD (Left Bottom) -->
+  <div id="hud-p3" class="player-hud hud-bottom">
+    <div class="score">P3 Score: <span id="scoreValue3">0</span></div>
+    <div class="lapInfo">
+      Speed: <span id="speedValue3">0</span> mph<br>
+      Lap: <span id="lapValue3">1</span> / <span id="maxLapsValue3">3</span><br>
+      Time: <span id="lapTimeValue3">0.00</span>s<br>
+      Best: <span id="bestLapValue3">--</span>
+    </div>
+    <div class="boostContainer">
+      <div id="boostBar3" class="boostBar"></div>
+    </div>
+  </div>
+
+  <!-- Player 4 HUD (Right Bottom) -->
+  <div id="hud-p4" class="player-hud hud-bottom">
+    <div class="score">P4 Score: <span id="scoreValue4">0</span></div>
+    <div class="lapInfo">
+      Speed: <span id="speedValue4">0</span> mph<br>
+      Lap: <span id="lapValue4">1</span> / <span id="maxLapsValue4">3</span><br>
+      Time: <span id="lapTimeValue4">0.00</span>s<br>
+      Best: <span id="bestLapValue4">--</span>
+    </div>
+    <div class="boostContainer">
+      <div id="boostBar4" class="boostBar"></div>
+    </div>
+  </div>
+</div>
+
+<div id="menus">
+  <!-- Splash Screen -->
+  <div id="splashScreen" class="menu-screen">
+    <img src="/splash.png" alt="microRacer 2 - NEON DRIFT" class="splash-image" />
+    <p class="click-prompt">Click or press any key to start</p>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="mainMenu" class="menu-screen hidden">
+    <div class="menu-container">
+      <h1>microRacer 2</h1>
+      <p class="subtitle">NEON DRIFT</p>
+
+      <div class="section">
+        <label>Select Players</label>
+        <div class="player-buttons">
+          <button class="player-btn active" data-players="1">1</button>
+          <button class="player-btn" data-players="2">2</button>
+          <button class="player-btn" data-players="3">3</button>
+          <button class="player-btn" data-players="4">4</button>
+        </div>
       </div>
-      <div class="boostContainer">
-        <div id="boostBar1" class="boostBar"></div>
+
+      <div class="section">
+        <label>Select Track</label>
+        <div class="track-selector">
+          <button class="nav-btn" id="prevTrack">◀</button>
+          <div class="track-display">
+            <span class="track-number" id="trackNumber">1/8</span>
+            <span class="track-name" id="trackName">Neon Circuit</span>
+          </div>
+          <button class="nav-btn" id="nextTrack">▶</button>
+        </div>
+      </div>
+
+      <button class="start-btn" id="startBtn">Start Race</button>
+
+      <div class="menu-actions">
+        <button class="secondary-btn" id="settingsBtn">Settings</button>
+        <button class="secondary-btn" id="leaderboardBtn">Leaderboard</button>
+      </div>
+
+      <p class="controls-hint">Click to toggle controller</p>
+      <div class="controls-info single-player" id="controlsInfo">
+        <div class="control-item" data-player="1">
+          <span class="player-label">Player 1</span>
+          <span class="keys">↑ ↓ ← →</span>
+        </div>
       </div>
     </div>
-
-    <!-- Player 2 HUD (Right) -->
-    <div id="hud-p2" class="player-hud">
-      <div class="score">P2 Score: <span id="scoreValue2">0</span></div>
-      <div class="lapInfo">
-        Speed: <span id="speedValue2">0</span> mph<br>
-        Lap: <span id="lapValue2">1</span> / <span id="maxLapsValue2">3</span><br>
-        Time: <span id="lapTimeValue2">0.00</span>s<br>
-        Best: <span id="bestLapValue2">--</span>
-      </div>
-      <div class="boostContainer">
-        <div id="boostBar2" class="boostBar"></div>
-      </div>
+    <div class="footer-links">
+      <a class="footer-link" href="https://github.com/szabadkai/microRacer2" target="_blank" rel="noopener">GitHub</a>
+      <a class="footer-link" href="https://szabadkai.com" target="_blank" rel="noopener">szabadkai.com</a>
+      <a class="music-credit" href="https://www.youtube.com/@AlexandrZhelanovsMusic" target="_blank"
+        rel="noopener">Music: Aleksandr Zhelanov</a>
     </div>
+  </div>
 
-    <!-- Player 3 HUD (Left Bottom) -->
-    <div id="hud-p3" class="player-hud hud-bottom">
-      <div class="score">P3 Score: <span id="scoreValue3">0</span></div>
-      <div class="lapInfo">
-        Speed: <span id="speedValue3">0</span> mph<br>
-        Lap: <span id="lapValue3">1</span> / <span id="maxLapsValue3">3</span><br>
-        Time: <span id="lapTimeValue3">0.00</span>s<br>
-        Best: <span id="bestLapValue3">--</span>
+  <!-- Settings Screen -->
+  <div id="settingsScreen" class="menu-screen hidden">
+    <div class="menu-container">
+      <h2>Settings</h2>
+      <div class="settings-list">
+        <div class="settings-item">
+          <label for="ghostToggleSettings">👻 Ghost (fastest lap)</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ghostToggleSettings" checked>
+            <span class="toggle-slider" style="width: 54px;"></span>
+          </label>
+          <span id="ghostToggleSettingsLabel">ON</span>
+        </div>
+        <div class="settings-item volume-item">
+          <label for="musicVolumeSettings">🎵 Music</label>
+          <input type="range" id="musicVolumeSettings" min="0" max="1" step="0.05" value="0.5">
+          <span id="musicVolumeSettingsLabel">50%</span>
+        </div>
+        <div class="settings-item volume-item">
+          <label for="sfxVolumeSettings">🔊 SFX</label>
+          <input type="range" id="sfxVolumeSettings" min="0" max="1" step="0.05" value="0.4">
+          <span id="sfxVolumeSettingsLabel">40%</span>
+        </div>
       </div>
-      <div class="boostContainer">
-        <div id="boostBar3" class="boostBar"></div>
-      </div>
+      <button class="secondary-btn" id="settingsBackBtn">Back</button>
     </div>
+  </div>
 
-    <!-- Player 4 HUD (Right Bottom) -->
-    <div id="hud-p4" class="player-hud hud-bottom">
-      <div class="score">P4 Score: <span id="scoreValue4">0</span></div>
-      <div class="lapInfo">
-        Speed: <span id="speedValue4">0</span> mph<br>
-        Lap: <span id="lapValue4">1</span> / <span id="maxLapsValue4">3</span><br>
-        Time: <span id="lapTimeValue4">0.00</span>s<br>
-        Best: <span id="bestLapValue4">--</span>
-      </div>
-      <div class="boostContainer">
-        <div id="boostBar4" class="boostBar"></div>
+  <!-- Leaderboard Screen -->
+  <div id="leaderboardScreen" class="menu-screen hidden">
+    <div class="menu-container">
+      <h2>Track Records</h2>
+      <div class="leaderboard-track" id="leaderboardTrackName">Neon Circuit</div>
+      <div class="leaderboard-note">Stored locally on this device</div>
+      <ul class="leaderboard-list" id="leaderboardList">
+        <li class="leaderboard-empty">No records yet. Complete a race!</li>
+      </ul>
+      <div class="leaderboard-actions">
+        <button class="secondary-btn danger-btn" id="leaderboardClearBtn">Clear</button>
+        <button class="secondary-btn" id="leaderboardBackBtn">Back</button>
       </div>
     </div>
   </div>
 
-  <div id="menus">
-    <!-- Splash Screen -->
-    <div id="splashScreen" class="menu-screen">
-      <img src="/splash.png" alt="microRacer 2 - NEON DRIFT" class="splash-image" />
-      <p class="click-prompt">Click or press any key to start</p>
-    </div>
-
-    <!-- Main Menu -->
-    <div id="mainMenu" class="menu-screen hidden">
-      <div class="menu-container">
-        <h1>microRacer 2</h1>
-        <p class="subtitle">NEON DRIFT</p>
-
-        <div class="section">
-          <label>Select Players</label>
-          <div class="player-buttons">
-            <button class="player-btn active" data-players="1">1</button>
-            <button class="player-btn" data-players="2">2</button>
-            <button class="player-btn" data-players="3">3</button>
-            <button class="player-btn" data-players="4">4</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <label>Select Track</label>
-          <div class="track-selector">
-            <button class="nav-btn" id="prevTrack">◀</button>
-            <div class="track-display">
-              <span class="track-number" id="trackNumber">1/8</span>
-              <span class="track-name" id="trackName">Neon Circuit</span>
-            </div>
-            <button class="nav-btn" id="nextTrack">▶</button>
-          </div>
-        </div>
-
-        <button class="start-btn" id="startBtn">Start Race</button>
-
-        <div class="menu-actions">
-          <button class="secondary-btn" id="settingsBtn">Settings</button>
-          <button class="secondary-btn" id="leaderboardBtn">Leaderboard</button>
-        </div>
-
-        <p class="controls-hint">Click to toggle controller</p>
-        <div class="controls-info single-player" id="controlsInfo">
-          <div class="control-item" data-player="1">
-            <span class="player-label">Player 1</span>
-            <span class="keys">↑ ↓ ← →</span>
-          </div>
-        </div>
+  <!-- Lobby Menu (for multiplayer join) -->
+  <div id="lobbyMenu" class="menu-screen hidden">
+    <div class="menu-container">
+      <h1>Lobby</h1>
+      <p class="subtitle">Press any key or gamepad button to join</p>
+      <div id="playerSlots">
+        <!-- Slots will be injected here via JS -->
       </div>
-      <div class="footer-links">
-        <a class="footer-link" href="https://github.com/szabadkai/microRacer2" target="_blank" rel="noopener">GitHub</a>
-        <a class="footer-link" href="https://szabadkai.com" target="_blank" rel="noopener">szabadkai.com</a>
-        <a class="music-credit" href="https://www.youtube.com/@AlexandrZhelanovsMusic" target="_blank" rel="noopener">Music: Aleksandr Zhelanov</a>
-      </div>
-    </div>
-
-    <!-- Settings Screen -->
-    <div id="settingsScreen" class="menu-screen hidden">
-      <div class="menu-container">
-        <h2>Settings</h2>
-        <div class="settings-list">
-          <div class="settings-item">
-            <label for="ghostToggleSettings">👻 Ghost (fastest lap)</label>
-            <label class="toggle-switch">
-              <input type="checkbox" id="ghostToggleSettings" checked>
-              <span class="toggle-slider" style="width: 54px;"></span>
-            </label>
-            <span id="ghostToggleSettingsLabel">ON</span>
-          </div>
-          <div class="settings-item volume-item">
-            <label for="musicVolumeSettings">🎵 Music</label>
-            <input type="range" id="musicVolumeSettings" min="0" max="1" step="0.05" value="0.5">
-            <span id="musicVolumeSettingsLabel">50%</span>
-          </div>
-          <div class="settings-item volume-item">
-            <label for="sfxVolumeSettings">🔊 SFX</label>
-            <input type="range" id="sfxVolumeSettings" min="0" max="1" step="0.05" value="0.4">
-            <span id="sfxVolumeSettingsLabel">40%</span>
-          </div>
-        </div>
-        <button class="secondary-btn" id="settingsBackBtn">Back</button>
-      </div>
-    </div>
-
-    <!-- Leaderboard Screen -->
-    <div id="leaderboardScreen" class="menu-screen hidden">
-      <div class="menu-container">
-        <h2>Track Records</h2>
-        <div class="leaderboard-track" id="leaderboardTrackName">Neon Circuit</div>
-        <div class="leaderboard-note">Stored locally on this device</div>
-        <ul class="leaderboard-list" id="leaderboardList">
-          <li class="leaderboard-empty">No records yet. Complete a race!</li>
-        </ul>
-        <div class="leaderboard-actions">
-          <button class="secondary-btn danger-btn" id="leaderboardClearBtn">Clear</button>
-          <button class="secondary-btn" id="leaderboardBackBtn">Back</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Lobby Menu (for multiplayer join) -->
-    <div id="lobbyMenu" class="menu-screen hidden">
-      <div class="menu-container">
-        <h1>Lobby</h1>
-        <p class="subtitle">Press any key or gamepad button to join</p>
-        <div id="playerSlots">
-          <!-- Slots will be injected here via JS -->
-        </div>
-        <button class="start-btn hidden" id="startRaceBtn">Start Race</button>
-        <button class="secondary-btn" id="lobbyBackBtn">Back</button>
-      </div>
-    </div>
-
-    <!-- Countdown -->
-    <div id="countdownMenu" class="menu-screen hidden">
-      <h1 id="countdownText" class="huge-text">3</h1>
-    </div>
-
-    <!-- Pause Menu -->
-    <div id="pauseMenu" class="menu-screen hidden">
-      <div class="menu-container">
-        <h1>Paused</h1>
-        <div class="volume-controls">
-          <div class="volume-row">
-            <label for="musicVolume">🎵 Music</label>
-            <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.5">
-            <span id="musicVolumeLabel">50%</span>
-          </div>
-          <div class="volume-row">
-            <label for="sfxVolume">🔊 SFX</label>
-            <input type="range" id="sfxVolume" min="0" max="1" step="0.05" value="0.4">
-            <span id="sfxVolumeLabel">40%</span>
-          </div>
-          <div class="volume-row">
-            <label for="ghostTogglePause">👻 Ghosts</label>
-            <label class="toggle-switch">
-              <input type="checkbox" id="ghostTogglePause" checked>
-              <span class="toggle-slider" style="width: 54px;"></span>
-            </label>
-            <span id="ghostToggleLabel">ON</span>
-          </div>
-        </div>
-        <button class="start-btn" id="resumeBtn">Resume</button>
-        <button class="secondary-btn" id="quitBtn">Quit to Menu</button>
-      </div>
-    </div>
-
-    <!-- Game Over Menu -->
-    <div id="gameOverMenu" class="menu-screen hidden">
-      <h1 id="winnerText">RACE OVER</h1>
-      <div class="stats-container">
-        <div class="stats p1-stats">
-          <h2>PLAYER 1</h2>
-          <p>Total Time: <span id="finalTimeValue1">0.00</span>s</p>
-          <p>Best Lap: <span id="finalBestValue1">--</span></p>
-          <p>Drift Score: <span id="finalScoreValue1">0</span></p>
-        </div>
-        <div class="stats p2-stats">
-          <h2>PLAYER 2</h2>
-          <p>Total Time: <span id="finalTimeValue2">0.00</span>s</p>
-          <p>Best Lap: <span id="finalBestValue2">--</span></p>
-          <p>Drift Score: <span id="finalScoreValue2">0</span></p>
-        </div>
-      </div>
-      <button class="start-btn" id="restartBtn">Rematch</button>
-      <button class="secondary-btn" id="menuBtn">Back to Menu</button>
+      <button class="start-btn hidden" id="startRaceBtn">Start Race</button>
+      <button class="secondary-btn" id="lobbyBackBtn">Back</button>
     </div>
   </div>
 
-  <canvas id="gameCanvas"></canvas>
-  <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
-  <script type="module" src="/src/main.js"></script>
-  <!-- Google tag (gtag.js) -->
+  <!-- Countdown -->
+  <div id="countdownMenu" class="menu-screen hidden">
+    <h1 id="countdownText" class="huge-text">3</h1>
+  </div>
+
+  <!-- Pause Menu -->
+  <div id="pauseMenu" class="menu-screen hidden">
+    <div class="menu-container">
+      <h1>Paused</h1>
+      <div class="volume-controls">
+        <div class="volume-row">
+          <label for="musicVolume">🎵 Music</label>
+          <input type="range" id="musicVolume" min="0" max="1" step="0.05" value="0.5">
+          <span id="musicVolumeLabel">50%</span>
+        </div>
+        <div class="volume-row">
+          <label for="sfxVolume">🔊 SFX</label>
+          <input type="range" id="sfxVolume" min="0" max="1" step="0.05" value="0.4">
+          <span id="sfxVolumeLabel">40%</span>
+        </div>
+        <div class="volume-row">
+          <label for="ghostTogglePause">👻 Ghosts</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="ghostTogglePause" checked>
+            <span class="toggle-slider" style="width: 54px;"></span>
+          </label>
+          <span id="ghostToggleLabel">ON</span>
+        </div>
+      </div>
+      <button class="start-btn" id="resumeBtn">Resume</button>
+      <button class="secondary-btn" id="quitBtn">Quit to Menu</button>
+    </div>
+  </div>
+
+  <!-- Game Over Menu -->
+  <div id="gameOverMenu" class="menu-screen hidden">
+    <h1 id="winnerText">RACE OVER</h1>
+    <div class="stats-container">
+      <div class="stats p1-stats">
+        <h2>PLAYER 1</h2>
+        <p>Total Time: <span id="finalTimeValue1">0.00</span>s</p>
+        <p>Best Lap: <span id="finalBestValue1">--</span></p>
+        <p>Drift Score: <span id="finalScoreValue1">0</span></p>
+      </div>
+      <div class="stats p2-stats">
+        <h2>PLAYER 2</h2>
+        <p>Total Time: <span id="finalTimeValue2">0.00</span>s</p>
+        <p>Best Lap: <span id="finalBestValue2">--</span></p>
+        <p>Drift Score: <span id="finalScoreValue2">0</span></p>
+      </div>
+    </div>
+    <button class="start-btn" id="restartBtn">Rematch</button>
+    <button class="secondary-btn" id="menuBtn">Back to Menu</button>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+<audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
+<script type="module" src="/src/main.js"></script>
+<!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-54PQWL33BR"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
+  function gtag() { dataLayer.push(arguments); }
   gtag('js', new Date());
 
   gtag('config', 'G-54PQWL33BR');
