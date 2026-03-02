@@ -21,7 +21,7 @@ const audioManager = new AudioManager();
 let cars = [];
 
 // Ghost state
-let ghostsEnabled = true;
+let ghostsEnabled = localStorage.getItem('ghostsEnabled') !== 'false';
 let ghostRecorders = [];
 let ghostPlayers = [];
 
@@ -293,6 +293,7 @@ function showSettings() {
 // Settings ghost toggle
 document.getElementById('ghostToggleSettings').addEventListener('change', (e) => {
   ghostsEnabled = e.target.checked;
+  localStorage.setItem('ghostsEnabled', ghostsEnabled.toString());
   document.getElementById('ghostToggleSettingsLabel').textContent = ghostsEnabled ? 'ON' : 'OFF';
   // Also sync with pause menu toggle
   const pauseToggle = document.getElementById('ghostTogglePause');
@@ -748,16 +749,35 @@ const ghostTogglePause = document.getElementById('ghostTogglePause');
 const ghostToggleLabel = document.getElementById('ghostToggleLabel');
 ghostTogglePause.addEventListener('change', () => {
   ghostsEnabled = ghostTogglePause.checked;
+  localStorage.setItem('ghostsEnabled', ghostsEnabled.toString());
   ghostToggleLabel.textContent = ghostsEnabled ? 'ON' : 'OFF';
+  // Also sync with settings menu toggle
+  const settingsToggle = document.getElementById('ghostToggleSettings');
+  if (settingsToggle) {
+    settingsToggle.checked = ghostsEnabled;
+    document.getElementById('ghostToggleSettingsLabel').textContent = ghostsEnabled ? 'ON' : 'OFF';
+  }
 });
 
 // ============================================
 // CANVAS RESIZE
 // ============================================
 
+// Reference resolution for consistent gameplay across displays
+const REFERENCE_WIDTH = 1920;
+const REFERENCE_HEIGHT = 1080;
+let resolutionScale = 1.0;
+
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  
+  // Calculate resolution scale factor based on reference resolution
+  // This ensures the car feels the same speed regardless of display resolution
+  const widthScale = canvas.width / REFERENCE_WIDTH;
+  const heightScale = canvas.height / REFERENCE_HEIGHT;
+  // Use the smaller scale to maintain aspect ratio feel
+  resolutionScale = Math.min(widthScale, heightScale);
 }
 
 window.addEventListener('resize', resize);
@@ -904,10 +924,13 @@ function drawWorldForCar(car, viewWidth, viewHeight) {
   
   car.currentScale = car.currentScale || 1.0;
   car.currentScale += (targetScale - car.currentScale) * 0.05;
+  
+  // Apply resolution scale to make gameplay consistent across displays
+  const finalScale = car.currentScale * resolutionScale;
 
   ctx.save();
   ctx.translate(viewWidth / 2, viewHeight / 2);
-  ctx.scale(car.currentScale, car.currentScale);
+  ctx.scale(finalScale, finalScale);
   ctx.translate(-car.x, -car.y);
 
   track.draw(ctx);
