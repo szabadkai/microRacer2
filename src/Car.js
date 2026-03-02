@@ -122,14 +122,14 @@ export class Car {
 
     // Engine acceleration
     if (this.throttle !== 0) {
-      const finalAccel = this.onGrass ? activeAcceleration * 0.3 : activeAcceleration;
+      const finalAccel = this.onGrass ? activeAcceleration * 0.75 : activeAcceleration;
       const accelForce = this.throttle * finalAccel * dt;
       this.velocity.x += Math.cos(this.heading) * accelForce;
       this.velocity.y += Math.sin(this.heading) * accelForce;
     }
 
     // Apply Drag (air/rolling friction)
-    const activeFriction = this.onGrass ? 0.90 : this.friction; // Harsh friction on grass
+    const activeFriction = this.onGrass ? 0.96 : this.friction; // Mild friction on grass
     this.velocity.x *= activeFriction;
     this.velocity.y *= activeFriction;
 
@@ -146,7 +146,7 @@ export class Car {
     }
 
     // Cap at max speed
-    const finalMaxSpeed = this.onGrass ? activeMaxSpeed * 0.4 : activeMaxSpeed;
+    const finalMaxSpeed = this.onGrass ? activeMaxSpeed * 0.8 : activeMaxSpeed;
     const currentSpeed = Math.hypot(this.velocity.x, this.velocity.y);
     if (currentSpeed > finalMaxSpeed) {
       this.velocity.x = (this.velocity.x / currentSpeed) * finalMaxSpeed;
