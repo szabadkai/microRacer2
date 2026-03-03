@@ -1023,17 +1023,25 @@ function updateHUD(car) {
   }
 
   if (car.isBoosting) {
-    const backX = car.x - Math.cos(car.heading) * 15;
-    const backY = car.y - Math.sin(car.heading) * 15;
-    particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random() - 0.5) * 0.2, car.color, 12, 0.4);
+    car.boostParticleTimer = (car.boostParticleTimer || 0) + lastDt;
+    while (car.boostParticleTimer > 0.016) {
+      car.boostParticleTimer -= 0.016;
+      const backX = car.x - Math.cos(car.heading) * 15;
+      const backY = car.y - Math.sin(car.heading) * 15;
+      particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random() - 0.5) * 0.2, car.color, 12, 0.4);
+    }
   } else if (car.isDrifting) {
     car.score += Math.floor(100 * lastDt);
     ui.score.textContent = car.score;
 
-    if (speed > 100 && Math.random() < 0.5) {
-      const backX = car.x - Math.cos(car.heading) * 10;
-      const backY = car.y - Math.sin(car.heading) * 10;
-      particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), 'rgb(200, 200, 200)', 8, 1);
+    if (speed > 100) {
+      car.driftParticleTimer = (car.driftParticleTimer || 0) + lastDt;
+      while (car.driftParticleTimer > 0.032) {
+        car.driftParticleTimer -= 0.032;
+        const backX = car.x - Math.cos(car.heading) * 10;
+        const backY = car.y - Math.sin(car.heading) * 10;
+        particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), 'rgb(200, 200, 200)', 8, 1);
+      }
     }
   }
 }

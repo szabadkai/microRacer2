@@ -21,7 +21,7 @@ export class ParticleSystem {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
-      p.size *= 1.05; // expand over time
+      p.size *= Math.pow(1.05, dt * 60); // expand over time
       
       if (p.life <= 0) {
         this.particles.splice(i, 1);
