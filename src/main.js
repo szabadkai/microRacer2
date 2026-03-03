@@ -893,12 +893,30 @@ musicVolumeSlider.addEventListener('input', () => {
   const val = parseFloat(musicVolumeSlider.value);
   musicVolumeLabel.textContent = `${Math.round(val * 100)}%`;
   audioManager.setMusicVolume(val);
+  
+  musicVolume = val;
+  localStorage.setItem('musicVolume', musicVolume.toString());
+  
+  const settingsSlider = document.getElementById('musicVolumeSettings');
+  if (settingsSlider) {
+    settingsSlider.value = val;
+    document.getElementById('musicVolumeSettingsLabel').textContent = `${Math.round(val * 100)}%`;
+  }
 });
 
 sfxVolumeSlider.addEventListener('input', () => {
   const val = parseFloat(sfxVolumeSlider.value);
   sfxVolumeLabel.textContent = `${Math.round(val * 100)}%`;
   audioManager.setSfxVolume(val);
+
+  sfxVolume = val;
+  localStorage.setItem('sfxVolume', sfxVolume.toString());
+
+  const settingsSlider = document.getElementById('sfxVolumeSettings');
+  if (settingsSlider) {
+    settingsSlider.value = val;
+    document.getElementById('sfxVolumeSettingsLabel').textContent = `${Math.round(val * 100)}%`;
+  }
 });
 
 // Ghost toggle in pause menu
@@ -1262,6 +1280,30 @@ function gameLoop(timestamp) {
 // ============================================
 // INITIALIZATION
 // ============================================
+
+// Initialize UI elements and audio based on persisted settings
+musicVolumeSlider.value = musicVolume;
+musicVolumeLabel.textContent = Math.round(musicVolume * 100) + '%';
+audioManager.setMusicVolume(musicVolume);
+
+sfxVolumeSlider.value = sfxVolume;
+sfxVolumeLabel.textContent = Math.round(sfxVolume * 100) + '%';
+audioManager.setSfxVolume(sfxVolume);
+
+ghostTogglePause.checked = ghostsEnabled;
+ghostToggleLabel.textContent = ghostsEnabled ? 'ON' : 'OFF';
+
+const syncSettingsMenuOnInit = document.getElementById('ghostToggleSettings');
+if (syncSettingsMenuOnInit) {
+  syncSettingsMenuOnInit.checked = ghostsEnabled;
+  document.getElementById('ghostToggleSettingsLabel').textContent = ghostsEnabled ? 'ON' : 'OFF';
+
+  document.getElementById('musicVolumeSettings').value = musicVolume;
+  document.getElementById('musicVolumeSettingsLabel').textContent = Math.round(musicVolume * 100) + '%';
+
+  document.getElementById('sfxVolumeSettings').value = sfxVolume;
+  document.getElementById('sfxVolumeSettingsLabel').textContent = Math.round(sfxVolume * 100) + '%';
+}
 
 requestAnimationFrame((timestamp) => {
   lastTime = timestamp;
