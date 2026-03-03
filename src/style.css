@@ -785,6 +785,55 @@ body::after {
 }
 
 /* ============================================
+   CAMPAIGN HUD
+   ============================================ */
+
+#campaign-hud {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid var(--tertiary-accent);
+  border-radius: 8px;
+  padding: 10px 20px;
+  box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+  z-index: 1000;
+  text-align: right;
+  min-width: 250px;
+  pointer-events: none;
+}
+
+#campaign-hud.hidden {
+  display: none;
+}
+
+#campaignGoalTitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.6rem;
+  color: #fff;
+  margin-bottom: 5px;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+#campaignGoalObjective {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75rem;
+  color: #ccc;
+  margin-bottom: 15px;
+  font-style: italic;
+  max-width: 250px;
+}
+
+#campaignGoalStatus {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.2rem;
+  color: var(--tertiary-accent);
+  font-weight: bold;
+  text-shadow: 0 0 10px var(--tertiary-accent);
+}
+
+/* ============================================
    LOBBY SCREEN
    ============================================ */
 
@@ -1173,14 +1222,59 @@ body::after {
    ============================================ */
 
 .level-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  margin: 20px 0;
+  max-width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 10px 20px;
+}
+
+.campaign-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding-bottom: 20px;
+  border-bottom: 2px dashed rgba(0, 255, 204, 0.2);
+}
+
+.campaign-section:last-child {
+  border-bottom: none;
+}
+
+.campaign-section h2 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.9rem;
+  color: var(--tertiary-accent);
+  text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+  margin-bottom: 10px;
+}
+
+.locked-section {
+  text-align: center;
+  padding: 30px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.locked-section h2 {
+  color: #666;
+  text-shadow: none;
+}
+
+.locked-section p {
+  font-family: 'Orbitron', sans-serif;
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.section-levels-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
-  margin: 20px 0;
-  max-width: 100%;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 10px;
 }
 
 .level-card {
@@ -1191,12 +1285,50 @@ body::after {
   text-align: center;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.level-card.boss-level {
+  border-color: rgba(255, 51, 102, 0.5);
+  background: rgba(255, 51, 102, 0.05);
+}
+
+.level-card.boss-level:hover:not(.locked) {
+  border-color: #ff3366;
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.6);
 }
 
 .level-card:hover:not(.locked) {
   border-color: #00ffcc;
   box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
   transform: translateY(-2px);
+}
+
+.level-card.completed {
+  border-color: rgba(0, 255, 136, 0.4);
+  background: rgba(0, 255, 136, 0.05);
+  position: relative;
+  overflow: hidden;
+  /* Ensure ribbon clips at rounded corners */
+}
+
+.completion-stamp {
+  position: absolute;
+  top: 20px;
+  right: -45px;
+  width: 170px;
+  text-align: center;
+  background: var(--success-color);
+  color: #000;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.5rem;
+  padding: 8px 0;
+  transform: rotate(45deg);
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+  pointer-events: none;
+  z-index: 2;
 }
 
 .level-card.locked {

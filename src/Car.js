@@ -60,6 +60,7 @@ export class Car {
       if (this.aiDifficulty === 'bronze') lookaheadNodes = 7;
       else if (this.aiDifficulty === 'silver') lookaheadNodes = 5;
       else if (this.aiDifficulty === 'gold') lookaheadNodes = 4;
+      else if (this.aiDifficulty === 'boss') lookaheadNodes = 6;
       
       const targetIndex = (trackInfo.progressIndex + lookaheadNodes) % trackInfo.splinePoints.length;
       const targetPoint = trackInfo.splinePoints[targetIndex];
@@ -85,6 +86,8 @@ export class Car {
       if (this.aiDifficulty === 'bronze' && Math.random() < 0.05) steering += (Math.random() - 0.5) * 0.5;
       // Gold boost
       if (this.aiDifficulty === 'gold' && Math.abs(angleDiff) < 0.15 && this.boostLevel > 15) attemptingBoost = true;
+      // Boss boost (more aggressive)
+      if (this.aiDifficulty === 'boss' && Math.abs(angleDiff) < 0.2 && this.boostLevel > 10) attemptingBoost = true;
 
     } else {
       // Human Input

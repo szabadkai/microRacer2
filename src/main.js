@@ -57,11 +57,37 @@ let currentGameMode = GAMEMODE.QUICKRACE;
 let currentCampaignLevelIndex = 0;
 
 const CAMPAIGN_LEVELS = [
+  // SECTION 1: Rookie
   { id: 'c1', name: 'Rookie Run', trackIndex: 0, laps: 3, ai: ['bronze', 'bronze'], challengeText: 'Win 1st against 2 Bronze AIs' },
-  { id: 'c2', name: 'Drift Initiation', trackIndex: 1, laps: 3, ai: [], targetDriftScore: 5000, challengeText: 'Score 5000 drift points' },
-  { id: 'c3', name: 'Silver Scramble', trackIndex: 3, laps: 3, ai: ['silver', 'bronze'], challengeText: 'Beat the Silver AI' },
-  { id: 'c4', name: 'Time Attack', trackIndex: 4, laps: 3, ai: [], targetTime: 120, challengeText: 'Finish in under 2:00' },
-  { id: 'c5', name: 'Golden Gauntlet', trackIndex: 6, laps: 5, ai: ['gold', 'silver', 'silver'], challengeText: 'Win 1st against Gold AI' }
+  { id: 'c2', name: 'Drift Initiation', trackIndex: 1, laps: 3, ai: [], targetDriftScore: 5000, challengeText: 'Score 5,000 drift points' },
+  { id: 'c3', name: 'Desert Dash', trackIndex: 3, laps: 3, ai: ['bronze', 'bronze', 'bronze'], challengeText: 'Beat 3 Bronze AIs' },
+  { id: 'c4', name: 'Time Attack: Neon', trackIndex: 0, laps: 2, ai: [], targetTime: 85, challengeText: 'Finish 2 laps in under 1:25' },
+  { id: 'c5', name: 'Silver Scramble', trackIndex: 1, laps: 3, ai: ['silver', 'bronze'], challengeText: 'Beat the Silver AI' },
+  { id: 'c6', name: 'BOSS: Neon Knight', trackIndex: 0, laps: 5, ai: ['boss'], challengeText: 'Defeat the Boss' },
+  
+  // SECTION 2: Intermediate
+  { id: 'c7', name: 'Ice Capades', trackIndex: 4, laps: 3, ai: ['silver', 'silver'], challengeText: 'Win 1st against 2 Silver AIs' },
+  { id: 'c8', name: 'Midnight Drifter', trackIndex: 2, laps: 3, ai: [], targetDriftScore: 10000, challengeText: 'Score 10,000 drift points' },
+  { id: 'c9', name: 'Time Attack: Strip', trackIndex: 1, laps: 3, ai: [], targetTime: 110, challengeText: 'Finish 3 laps in under 1:50' },
+  { id: 'c10', name: 'Synthwave Showdown', trackIndex: 8, laps: 3, ai: ['silver', 'silver', 'bronze'], challengeText: 'Win 1st on the new track' },
+  { id: 'c11', name: 'Golden Gauntlet', trackIndex: 2, laps: 4, ai: ['gold', 'silver', 'silver'], challengeText: 'Win 1st against Gold AI' },
+  { id: 'c12', name: 'BOSS: Ice King', trackIndex: 4, laps: 5, ai: ['boss', 'silver'], challengeText: 'Defeat the Boss & his minion' },
+
+  // SECTION 3: Advanced
+  { id: 'c13', name: 'Cyber Sprint', trackIndex: 5, laps: 4, ai: ['gold', 'gold'], challengeText: 'Win 1st against 2 Gold AIs' },
+  { id: 'c14', name: 'Toxic Tunnels', trackIndex: 6, laps: 4, ai: ['gold', 'silver', 'silver'], challengeText: 'Survive the Tunnels in 1st' },
+  { id: 'c15', name: 'Crystal Drifter', trackIndex: 9, laps: 3, ai: [], targetDriftScore: 18000, challengeText: 'Score 18,000 drift points' },
+  { id: 'c16', name: 'Time Attack: Cyber', trackIndex: 5, laps: 3, ai: [], targetTime: 125, challengeText: 'Finish 3 laps in under 2:05' },
+  { id: 'c17', name: 'Desert Endurance', trackIndex: 3, laps: 5, ai: ['gold', 'gold', 'silver'], challengeText: 'Win 1st in the Desert' },
+  { id: 'c18', name: 'BOSS: Cyber Phantom', trackIndex: 5, laps: 6, ai: ['boss', 'gold'], challengeText: 'Defeat the Boss' },
+
+  // SECTION 4: Master
+  { id: 'c19', name: 'Volcanic Warmup', trackIndex: 7, laps: 4, ai: ['gold', 'gold', 'gold'], challengeText: 'Win 1st against 3 Gold AIs' },
+  { id: 'c20', name: 'Toxic Drifter', trackIndex: 6, laps: 4, ai: [], targetDriftScore: 25000, challengeText: 'Score 25,000 drift points' },
+  { id: 'c21', name: 'Time Attack: Synth', trackIndex: 8, laps: 4, ai: [], targetTime: 155, challengeText: 'Finish 4 laps in under 2:35' },
+  { id: 'c22', name: 'Crystal Gauntlet', trackIndex: 9, laps: 5, ai: ['boss', 'gold', 'gold'], challengeText: 'Survive the Canyon' },
+  { id: 'c23', name: 'Volcanic Endurance', trackIndex: 7, laps: 6, ai: ['boss', 'boss', 'gold'], challengeText: 'Beat the Twin Bosses' },
+  { id: 'c24', name: 'FINAL BOSS: Inferno', trackIndex: 7, laps: 10, ai: ['boss', 'boss', 'boss'], challengeText: 'Ultimate Grand Prix' }
 ];
 
 function getUnlockedCampaignLevel() {
@@ -89,7 +115,9 @@ const tracks = [
   { id: 'ice_circuit', name: 'Ice Circuit', theme: 'ice_circuit', shape: 'loop', seed: 33333, radius: 1200, pointsCount: 35 },
   { id: 'cyber_circuit', name: 'Cyber Circuit', theme: 'cyber_grid', shape: 'figure8', seed: 44444, radius: 1800, pointsCount: 45 },
   { id: 'toxic_tunnels', name: 'Toxic Tunnels', theme: 'toxic_waste', shape: 'star', seed: 55555, radius: 3000, pointsCount: 70 },
-  { id: 'volcanic_venture', name: 'Volcanic Venture', theme: 'volcanic', shape: 'complex', seed: 66666, radius: 4000, pointsCount: 80 }
+  { id: 'volcanic_venture', name: 'Volcanic Venture', theme: 'volcanic', shape: 'complex', seed: 66666, radius: 4000, pointsCount: 80 },
+  { id: 'synthwave_sprint', name: 'Synthwave Sprint', theme: 'sunset_strip', shape: 'figure8', seed: 77777, radius: 2200, pointsCount: 55 },
+  { id: 'crystal_canyon', name: 'Crystal Canyon', theme: 'ice_circuit', shape: 'complex', seed: 88888, radius: 3200, pointsCount: 75 }
 ];
 
 let currentTrackIndex = 0;
@@ -252,31 +280,68 @@ function showCampaignMenu() {
   const unlockedLevel = getUnlockedCampaignLevel();
   campaignLevelGrid.innerHTML = '';
   
-  CAMPAIGN_LEVELS.forEach((level, index) => {
-    const isLocked = index > unlockedLevel;
-    const card = document.createElement('div');
-    card.className = `level-card ${isLocked ? 'locked' : ''}`;
+  // Group levels into sections of 6
+  const numSections = Math.ceil(CAMPAIGN_LEVELS.length / 6);
+  
+  for (let s = 0; s < numSections; s++) {
+    const sectionStart = s * 6;
+    const sectionEnd = Math.min(sectionStart + 6, CAMPAIGN_LEVELS.length);
     
-    card.innerHTML = `
-      <h3>${index + 1}. ${level.name}</h3>
-      <p>Track: ${tracks[level.trackIndex].name}</p>
-      <div class="challenge">${level.challengeText}</div>
-    `;
+    // A section is unlocked if the player has unlocked at least the first level of this section
+    const isSectionUnlocked = unlockedLevel >= sectionStart;
     
-    if (!isLocked) {
-      card.addEventListener('click', () => {
-        currentCampaignLevelIndex = index;
-        currentGameMode = GAMEMODE.CAMPAIGN;
-        currentTrackIndex = level.trackIndex;
-        selectedPlayerCount = 1; // Always single player
-        joinedPlayers = [];
-        maxLaps = level.laps;
-        startGame();
-      });
+    if (!isSectionUnlocked && s > 0) {
+       // Stop rendering further sections if this one isn't unlocked
+       // We'll just show a "locked section" placeholder
+       const sectionWrapper = document.createElement('div');
+       sectionWrapper.className = 'campaign-section locked-section';
+       sectionWrapper.innerHTML = `<h2>Section ${s + 1} - Locked</h2><p>Defeat the previous section's boss to unlock.</p>`;
+       campaignLevelGrid.appendChild(sectionWrapper);
+       break;
     }
     
-    campaignLevelGrid.appendChild(card);
-  });
+    const sectionWrapper = document.createElement('div');
+    sectionWrapper.className = 'campaign-section';
+    
+    const sectionTitles = ['Section 1: Rookie', 'Section 2: Intermediate', 'Section 3: Advanced', 'Section 4: Master'];
+    sectionWrapper.innerHTML = `<h2>${sectionTitles[s] || 'Section ' + (s + 1)}</h2>`;
+    
+    const levelsContainer = document.createElement('div');
+    levelsContainer.className = 'section-levels-grid';
+
+    for (let i = sectionStart; i < sectionEnd; i++) {
+        const level = CAMPAIGN_LEVELS[i];
+        const isLocked = i > unlockedLevel;
+        const isCompleted = i < unlockedLevel; // If unlockedLevel has advanced past this i, it's completed
+        const isBoss = (i % 6) === 5;
+        
+        const card = document.createElement('div');
+        card.className = `level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${isBoss ? 'boss-level' : ''}`;
+        
+        card.innerHTML = `
+          ${isCompleted ? '<div class="completion-stamp">COMPLETED</div>' : ''}
+          <h3>${i + 1}. ${level.name}</h3>
+          <p>Track: ${tracks[level.trackIndex].name}</p>
+          <div class="challenge">${level.challengeText}</div>
+        `;
+        
+        if (!isLocked) {
+          card.addEventListener('click', () => {
+            currentCampaignLevelIndex = i;
+            currentGameMode = GAMEMODE.CAMPAIGN;
+            currentTrackIndex = level.trackIndex;
+            selectedPlayerCount = 1; // Always single player
+            joinedPlayers = [];
+            maxLaps = level.laps;
+            startGame();
+          });
+        }
+        levelsContainer.appendChild(card);
+    }
+    
+    sectionWrapper.appendChild(levelsContainer);
+    campaignLevelGrid.appendChild(sectionWrapper);
+  }
 }
 
 function updateTrackDisplay() {
@@ -660,6 +725,11 @@ function startGame() {
       } else if (setup.difficulty === 'gold') {
          car.maxSpeed = 820;
          car.acceleration = 620;
+      } else if (setup.difficulty === 'boss') {
+         car.maxSpeed = 900;
+         car.acceleration = 700;
+         car.turnSpeed = 4.0;
+         car.grip = 1000;
       }
     }
 
@@ -677,10 +747,19 @@ function startGame() {
   });
 
   // Show appropriate HUDs
-  document.getElementById('hud-p1').style.display = cars.length > 0 ? 'block' : 'none';
-  document.getElementById('hud-p2').style.display = cars.length > 1 ? 'block' : 'none';
-  document.getElementById('hud-p3').style.display = cars.length > 2 ? 'block' : 'none';
-  document.getElementById('hud-p4').style.display = cars.length > 3 ? 'block' : 'none';
+  if (currentGameMode === GAMEMODE.CAMPAIGN) {
+    document.getElementById('hud-p1').style.display = 'block';
+    document.getElementById('hud-p2').style.display = 'none';
+    document.getElementById('hud-p3').style.display = 'none';
+    document.getElementById('hud-p4').style.display = 'none';
+    document.getElementById('campaign-hud').classList.remove('hidden');
+  } else {
+    document.getElementById('campaign-hud').classList.add('hidden');
+    document.getElementById('hud-p1').style.display = cars.length > 0 ? 'block' : 'none';
+    document.getElementById('hud-p2').style.display = cars.length > 1 ? 'block' : 'none';
+    document.getElementById('hud-p3').style.display = cars.length > 2 ? 'block' : 'none';
+    document.getElementById('hud-p4').style.display = cars.length > 3 ? 'block' : 'none';
+  }
 
   gameState = STATE.COUNTDOWN;
   hideAllMenus();
@@ -818,9 +897,10 @@ function endGame() {
     if (finalScore) finalScore.textContent = car.score;
   });
 
+  const humanCarsForStats = cars.filter(c => !c.isAI);
   const p2StatsContainer = document.querySelector('.p2-stats');
   if (p2StatsContainer) {
-    p2StatsContainer.style.display = cars.length > 1 ? 'block' : 'none';
+    p2StatsContainer.style.display = humanCarsForStats.length > 1 ? 'block' : 'none';
   }
 
   showMenu(gameOverMenu);
@@ -1212,8 +1292,9 @@ function updateHUD(car) {
         car.finishTime = totalRaceTime;
         ui.lapValue.textContent = maxLaps;
 
-        // Check if all players have finished
-        const allFinished = cars.every(c => c.finished);
+        // Check if all human players have finished
+        const humanCars = cars.filter(c => !c.isAI);
+        const allFinished = humanCars.every(c => c.finished);
         if (allFinished) {
           endGame();
         } else {
@@ -1258,6 +1339,79 @@ function updateHUD(car) {
         const particleSize = 8 + Math.min(car.comboMultiplier - 1, 3) * 2;
         
         particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), particleColor, particleSize, 1);
+      }
+    }
+  }
+
+  // Update Campaign Progress HUD if applicable
+  if (currentGameMode === GAMEMODE.CAMPAIGN && car.playerIndex === 0) {
+    const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+    const goalTitle = document.getElementById('campaignGoalTitle');
+    const goalObjective = document.getElementById('campaignGoalObjective');
+    const goalStatus = document.getElementById('campaignGoalStatus');
+    
+    // Set the static objective text
+    if (goalObjective.textContent !== level.challengeText) {
+      goalObjective.textContent = level.challengeText;
+    }
+    
+    if (level.targetDriftScore) {
+      goalTitle.textContent = `TARGET: ${level.targetDriftScore.toLocaleString()} PTS`;
+      
+      const currentPoints = car.score || 0;
+      const totalPoints = currentPoints + Math.floor(car.pendingDriftScore || 0);
+      goalStatus.textContent = totalPoints.toLocaleString();
+      
+      if (totalPoints >= level.targetDriftScore) {
+        goalStatus.style.color = 'var(--success-color)';
+        goalStatus.style.textShadow = '0 0 10px var(--success-color)';
+      } else {
+        goalStatus.style.color = 'var(--tertiary-accent)';
+        goalStatus.style.textShadow = '0 0 10px var(--tertiary-accent)';
+      }
+    } else if (level.targetTime) {
+      goalTitle.textContent = `TIME LIMIT: ${level.targetTime}s`;
+      const elapsed = totalRaceTime.toFixed(1);
+      goalStatus.textContent = `${elapsed}s`;
+      
+      if (totalRaceTime > level.targetTime) {
+         goalStatus.style.color = 'rgba(255, 51, 102, 1)';
+         goalStatus.style.textShadow = '0 0 10px rgba(255, 51, 102, 0.8)';
+      } else {
+         goalStatus.style.color = 'var(--primary-accent)';
+         goalStatus.style.textShadow = '0 0 10px var(--primary-accent)';
+      }
+    } else {
+      // Race Challenges (Win 1st place)
+      goalTitle.textContent = 'POSITION';
+      
+      // Calculate current position
+      // Sort all cars based on laps completed, then lap progress
+      const sortedCars = [...cars].sort((a, b) => {
+        if (a.currentLap !== b.currentLap) {
+          return b.currentLap - a.currentLap; // Higher lap first
+        }
+        
+        // Same lap: use progressIndex
+        const aInfo = track.getPointInfo(a.x, a.y);
+        const bInfo = track.getPointInfo(b.x, b.y);
+        return bInfo.progressIndex - aInfo.progressIndex; // Higher progress first
+      });
+      
+      const playerPos = sortedCars.findIndex(c => c === car) + 1;
+      
+      let suffix = 'th';
+      if (playerPos % 10 === 1 && playerPos % 100 !== 11) suffix = 'st';
+      else if (playerPos % 10 === 2 && playerPos % 100 !== 12) suffix = 'nd';
+      else if (playerPos % 10 === 3 && playerPos % 100 !== 13) suffix = 'rd';
+      
+      goalStatus.textContent = `${playerPos}${suffix} / ${cars.length}`;
+      if (playerPos === 1) {
+         goalStatus.style.color = 'var(--success-color)';
+         goalStatus.style.textShadow = '0 0 10px var(--success-color)';
+      } else {
+         goalStatus.style.color = 'var(--player1-color)';
+         goalStatus.style.textShadow = '0 0 10px var(--player1-color)';
       }
     }
   }
@@ -1367,9 +1521,12 @@ function draw() {
   // Only draw world if track exists and we're in a game state
   if (!track || cars.length === 0) return;
 
-  if (cars.length === 1) {
-    drawWorldForCar(cars[0], canvas.width, canvas.height);
-  } else if (cars.length === 2) {
+  const humanCars = cars.filter(c => !c.isAI);
+  const carsToDraw = humanCars.length > 0 ? humanCars : cars;
+
+  if (carsToDraw.length === 1) {
+    drawWorldForCar(carsToDraw[0], canvas.width, canvas.height);
+  } else if (carsToDraw.length === 2) {
     // 2 players: side by side
     const halfWidth = canvas.width / 2;
 
@@ -1377,7 +1534,7 @@ function draw() {
     ctx.beginPath();
     ctx.rect(0, 0, halfWidth, canvas.height);
     ctx.clip();
-    drawWorldForCar(cars[0], halfWidth, canvas.height);
+    drawWorldForCar(carsToDraw[0], halfWidth, canvas.height);
     ctx.restore();
 
     ctx.save();
@@ -1385,7 +1542,7 @@ function draw() {
     ctx.rect(halfWidth, 0, halfWidth, canvas.height);
     ctx.clip();
     ctx.translate(halfWidth, 0);
-    drawWorldForCar(cars[1], halfWidth, canvas.height);
+    drawWorldForCar(carsToDraw[1], halfWidth, canvas.height);
     ctx.restore();
 
     // Draw split line
@@ -1398,7 +1555,7 @@ function draw() {
     ctx.lineTo(halfWidth, canvas.height);
     ctx.stroke();
     ctx.shadowBlur = 0;
-  } else if (cars.length === 3 || cars.length === 4) {
+  } else if (carsToDraw.length === 3 || carsToDraw.length === 4) {
     // 3-4 players: 2x2 grid
     const halfWidth = canvas.width / 2;
     const halfHeight = canvas.height / 2;
@@ -1408,7 +1565,7 @@ function draw() {
     ctx.beginPath();
     ctx.rect(0, 0, halfWidth, halfHeight);
     ctx.clip();
-    drawWorldForCar(cars[0], halfWidth, halfHeight);
+    drawWorldForCar(carsToDraw[0], halfWidth, halfHeight);
     ctx.restore();
 
     // Player 2: Top Right
@@ -1417,7 +1574,7 @@ function draw() {
     ctx.rect(halfWidth, 0, halfWidth, halfHeight);
     ctx.clip();
     ctx.translate(halfWidth, 0);
-    drawWorldForCar(cars[1], halfWidth, halfHeight);
+    drawWorldForCar(carsToDraw[1], halfWidth, halfHeight);
     ctx.restore();
 
     // Player 3: Bottom Left
@@ -1426,17 +1583,17 @@ function draw() {
     ctx.rect(0, halfHeight, halfWidth, halfHeight);
     ctx.clip();
     ctx.translate(0, halfHeight);
-    drawWorldForCar(cars[2], halfWidth, halfHeight);
+    drawWorldForCar(carsToDraw[2], halfWidth, halfHeight);
     ctx.restore();
 
     // Player 4: Bottom Right (if exists)
-    if (cars.length > 3) {
+    if (carsToDraw.length > 3) {
       ctx.save();
       ctx.beginPath();
       ctx.rect(halfWidth, halfHeight, halfWidth, halfHeight);
       ctx.clip();
       ctx.translate(halfWidth, halfHeight);
-      drawWorldForCar(cars[3], halfWidth, halfHeight);
+      drawWorldForCar(carsToDraw[3], halfWidth, halfHeight);
       ctx.restore();
     }
 
