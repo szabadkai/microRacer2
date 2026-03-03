@@ -933,8 +933,14 @@ function resize() {
   // This ensures the car feels the same speed regardless of display resolution
   const widthScale = canvas.width / REFERENCE_WIDTH;
   const heightScale = canvas.height / REFERENCE_HEIGHT;
-  // Use Math.max to ensure the view "covers" the screen without zooming out too much on mobile
-  resolutionScale = Math.max(widthScale, heightScale);
+  
+  if (canvas.width > canvas.height) {
+    // Landscape: fix the height to reference, extend the width natively (prevents zoomed-in look on ultra-wides)
+    resolutionScale = heightScale;
+  } else {
+    // Portrait: Use Math.max to ensure the view "covers" the screen without zooming out too much on mobile
+    resolutionScale = Math.max(widthScale, heightScale);
+  }
 }
 
 window.addEventListener('resize', resize);
@@ -1080,7 +1086,9 @@ function drawWorldForCar(car, viewWidth, viewHeight) {
   const targetScale = 1.0 - (speed / 800) * 0.4;
 
   car.currentScale = car.currentScale || 1.0;
-  car.currentScale += (targetScale - car.currentScale) * 0.05;
+  // Apply smoothing factor based on 60 FPS for framerate independence
+  const smoothingFactor = 1.0 - Math.pow(1.0 - 0.05, (window.lastDt || 0.016) * 60);
+  car.currentScale += (targetScale - car.currentScale) * smoothingFactor;
 
   // Apply resolution scale to make gameplay consistent across displays
   const finalScale = car.currentScale * resolutionScale;

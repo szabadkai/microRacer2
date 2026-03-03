@@ -128,10 +128,12 @@ export class Car {
       this.velocity.y += Math.sin(this.heading) * accelForce;
     }
 
-    // Apply Drag (air/rolling friction)
+    // Apply Drag (air/rolling friction) frame-rate independently
+    // Assuming original tuning was at ~60 FPS
     const activeFriction = this.onGrass ? 0.96 : this.friction; // Mild friction on grass
-    this.velocity.x *= activeFriction;
-    this.velocity.y *= activeFriction;
+    const frictionFactor = Math.pow(activeFriction, dt * 60);
+    this.velocity.x *= frictionFactor;
+    this.velocity.y *= frictionFactor;
 
     // Apply Lateral Grip (pull velocity toward heading)
     if (speed > 10) {
