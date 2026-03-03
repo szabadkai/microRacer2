@@ -72,9 +72,9 @@ export class Car {
     }
 
     // Apply steering smoothing for more gradual feel
-    // Interpolate toward target steering value
-    const smoothingRate = this.steeringSmoothing * dt;
-    this.smoothedSteering += (steering - this.smoothedSteering) * Math.min(smoothingRate, 1);
+    // Exact exponential interpolation for perfect framerate independence
+    const smoothingFactor = 1.0 - Math.exp(-this.steeringSmoothing * dt);
+    this.smoothedSteering += (steering - this.smoothedSteering) * smoothingFactor;
 
     const speed = Math.hypot(this.velocity.x, this.velocity.y);
     // Only steer if moving

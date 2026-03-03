@@ -1031,7 +1031,8 @@ function updateHUD(car) {
       particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random() - 0.5) * 0.2, car.color, 12, 0.4);
     }
   } else if (car.isDrifting) {
-    car.score += Math.floor(100 * lastDt);
+    car.exactScore = (car.exactScore || car.score) + 100 * lastDt;
+    car.score = Math.floor(car.exactScore);
     ui.score.textContent = car.score;
 
     if (speed > 100) {
