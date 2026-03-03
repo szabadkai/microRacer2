@@ -49,8 +49,8 @@ export class GamepadManager {
     
     // R2 or A button for forward
     const forward = Math.max(gamepad.buttons[7]?.value || 0, gamepad.buttons[0]?.pressed ? 1 : 0);
-    // L2 or B button for reverse
-    const reverse = Math.max(gamepad.buttons[6]?.value || 0, gamepad.buttons[1]?.pressed ? 1 : 0);
+    // L2 or X button for reverse
+    const reverse = Math.max(gamepad.buttons[6]?.value || 0, gamepad.buttons[2]?.pressed ? 1 : 0);
     
     if (forward > reverse) return forward;
     if (reverse > forward) return -reverse * 0.5; // same -0.5 max reverse as keyboard
@@ -62,7 +62,7 @@ export class GamepadManager {
     const gamepad = this.getGamepad(index);
     if (!gamepad) return false;
     
-    // X or Y buttons for boost
-    return gamepad.buttons[2]?.pressed || gamepad.buttons[3]?.pressed || gamepad.buttons[5]?.pressed; // RB
+    // B, Y buttons, or Bumpers for boost
+    return gamepad.buttons[1]?.pressed || gamepad.buttons[3]?.pressed || gamepad.buttons[4]?.pressed || gamepad.buttons[5]?.pressed;
   }
 }

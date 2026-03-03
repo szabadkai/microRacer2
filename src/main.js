@@ -417,22 +417,59 @@ function updateTrackDisplay() {
   trackName.textContent = tracks[currentTrackIndex].name;
 }
 
+let playerInputPreferences = ['keyboard', 'keyboard', 'keyboard', 'keyboard'];
+
 function updateControlsDisplay() {
   const controlItems = [];
 
   for (let i = 0; i < selectedPlayerCount; i++) {
-    const controls = getPlayerControls(i);
+    const pref = playerInputPreferences[i];
+    let display = '';
+    let boostDisplay = '';
+    
+    if (pref.startsWith('gamepad')) {
+      const gpIndex = parseInt(pref.replace('gamepad', ''));
+      display = `Gamepad ${gpIndex + 1}`;
+      boostDisplay = 'Any Bottom Face Button'; 
+    } else {
+      const controls = getPlayerControls(i);
+      display = controls.display;
+      boostDisplay = controls.boostDisplay;
+    }
+
     controlItems.push(`
-      <div class="control-item" data-player="${i + 1}">
+      <div class="control-item" data-player="${i + 1}" style="cursor: pointer;">
         <span class="player-label">Player ${i + 1}</span>
-        <span class="keys">${controls.display}</span>
-        <span class="boost-key">Boost: ${controls.boostDisplay}</span>
+        <span class="keys">${display}</span>
+        <span class="boost-key">Boost: ${boostDisplay}</span>
       </div>
     `);
   }
 
   controlsInfo.innerHTML = controlItems.join('');
   controlsInfo.classList.toggle('single-player', selectedPlayerCount === 1);
+
+  // Add click listeners to toggle inputs
+  const items = controlsInfo.querySelectorAll('.control-item');
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      const pIndex = parseInt(item.dataset.player) - 1;
+      // cycle preference
+      const currentPref = playerInputPreferences[pIndex];
+      if (currentPref === 'keyboard') {
+        playerInputPreferences[pIndex] = 'gamepad0';
+      } else if (currentPref.startsWith('gamepad')) {
+        let gpIndex = parseInt(currentPref.replace('gamepad', ''));
+        gpIndex++;
+        if (gpIndex > 3) {
+          playerInputPreferences[pIndex] = 'keyboard';
+        } else {
+          playerInputPreferences[pIndex] = `gamepad${gpIndex}`;
+        }
+      }
+      updateControlsDisplay();
+    });
+  });
 }
 
 function getPlayerControls(playerIndex) {
@@ -764,7 +801,27 @@ function startGame() {
   // If no players joined via lobby (single player quick start), create default player
   if (joinedPlayers.length === 0 && selectedPlayerCount === 1) {
     const controls = getPlayerControls(0);
-    joinedPlayers.push({ gamepadIndex: null, controls: 'arrows', controlKeys: controls.keys });
+    const pref = playerInputPreferences[0];
+    
+    let defaultGamepadIndex = null;
+    let controlsType = 'arrows';
+    
+    if (pref.startsWith('gamepad')) {
+        defaultGamepadIndex = parseInt(pref.replace('gamepad', ''));
+        controlsType = 'gamepad';
+    } else {
+        // Check if a gamepad is connected to automatically assign it, as fallback
+        gamepadManager.poll();
+        for (let i = 0; i < 4; i++) {
+            const gp = gamepadManager.getGamepad(i);
+            if (gp) {
+                defaultGamepadIndex = i;
+                break;
+            }
+        }
+    }
+    
+    joinedPlayers.push({ gamepadIndex: defaultGamepadIndex, controls: controlsType, controlKeys: controls.keys });
     
     // Add AI if campaign mode
     if (currentGameMode === GAMEMODE.CAMPAIGN) {
@@ -1825,6 +1882,25 @@ function draw() {
 function gameLoop(timestamp) {
   const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
+
+  // Global gamepad pause check
+  gamepadManager.poll();
+  for (let i = 0; i < 4; i++) {
+    const gp = gamepadManager.getGamepad(i);
+    if (gp) {
+      if (!gamepadManager.pauseState) gamepadManager.pauseState = {};
+      const isStartHeld = gp.buttons[9]?.pressed;
+      
+      if (isStartHeld && !gamepadManager.pauseState[i]) {
+         gamepadManager.pauseState[i] = true;
+         // Toggle pause
+         if (gameState === STATE.PLAYING) pauseGame();
+         else if (gameState === STATE.PAUSED) resumeGame();
+      } else if (!isStartHeld) {
+         gamepadManager.pauseState[i] = false;
+      }
+    }
+  }
 
   // Global gamepad polling for initial splash screens or menu nav
   if (gameState !== STATE.PLAYING && gameState !== STATE.FINISHING) {
