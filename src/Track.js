@@ -164,7 +164,8 @@ const TRACK_SHAPES = {
 
     for (let i = 0; i < pointsCount; i++) {
       const angle = i * angleStep;
-      const rVariation = radius * (1 + Math.sin(angle * 4) * wobble);
+      let rVariation = radius * (1 + Math.sin(angle * 4) * wobble);
+      rVariation += Math.cos(angle * 6) * radius * 0.04; // Mild medium curves
       
       points.push({
         x: Math.cos(angle) * rVariation * stretchX,
@@ -189,7 +190,13 @@ const TRACK_SHAPES = {
       const x = (Math.cos(t) * scale) / denom * size * 2;
       const y = (Math.sin(t) * Math.cos(t) * scale) / denom * size * 2;
       
-      points.push({ x, y });
+      // Mild wave
+      const phase = rng.range(0, Math.PI);
+      const wave = size * 0.04;
+      const xFinal = x + Math.cos(t * 8 + phase) * wave;
+      const yFinal = y + Math.sin(t * 8 + phase) * wave;
+      
+      points.push({ x: xFinal, y: yFinal });
     }
     return points;
   },
@@ -211,6 +218,8 @@ const TRACK_SHAPES = {
       rVariation += Math.cos(angle * lobes) * radius * lobeStrength;
       // Secondary variation
       rVariation += Math.sin(angle * (lobes + 2)) * radius * 0.15;
+      // Mild wave
+      rVariation += Math.cos(angle * 8) * radius * 0.04;
       // Asymmetry
       rVariation += Math.cos(angle * 1 + Math.PI / 4) * radius * asymmetry;
       // Noise
@@ -233,7 +242,10 @@ const TRACK_SHAPES = {
     for (let i = 0; i < pointsCount; i++) {
       const angle = i * angleStep;
       const spikeAngle = angle * spikes;
-      const rVariation = radius * (1 - spikeDepth * Math.abs(Math.sin(spikeAngle)));
+      let rVariation = radius * (1 - spikeDepth * Math.abs(Math.sin(spikeAngle)));
+      
+      // Mild wave
+      rVariation += Math.cos(angle * spikes * 2) * radius * 0.03;
       
       points.push({
         x: Math.cos(angle) * rVariation,
@@ -259,11 +271,39 @@ const TRACK_SHAPES = {
       
       // Add some organic variation
       rVariation += Math.sin(angle * 5) * radius * 0.05;
+      // Mild wave
+      rVariation += Math.cos(angle * 7) * radius * 0.04;
       
       points.push({
         x: Math.cos(angle) * rVariation * stretch,
         y: Math.sin(angle) * rVariation
       });
+    }
+    return points;
+  },
+
+  synthwave: (rng, radius, pointsCount) => {
+    // A great balance of fast and wavy: a very long oval that wiggles on the straights
+    const points = [];
+    const angleStep = (Math.PI * 2) / pointsCount;
+    const stretchX = 1.9; // Long fast straights
+    const stretchY = 0.6; // Not too wide
+
+    for (let i = 0; i < pointsCount; i++) {
+      const angle = i * angleStep;
+      
+      let x = Math.cos(angle) * radius * stretchX;
+      let y = Math.sin(angle) * radius * stretchY;
+      
+      // Intensity of the wave is highest on the top/bottom straights (where sin(angle) is near +/- 1)
+      // and goes to zero at the left/right sweeping turns (where sin(angle) is 0)
+      const waveIntensity = Math.pow(Math.abs(Math.sin(angle)), 2);
+      
+      // Weave vertically (and slightly horizontally) to create chicanes on the long straights
+      y += Math.sin(angle * 8) * radius * 0.25 * waveIntensity;
+      x += Math.cos(angle * 8) * radius * 0.05 * waveIntensity;
+      
+      points.push({ x, y });
     }
     return points;
   }

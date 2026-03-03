@@ -35,6 +35,7 @@ let maxLaps = 3;
 // ============================================
 
 const STATE = {
+  STUDIO_SPLASH: -1,
   SPLASH: 0,
   MENU: 1,
   LOBBY: 2,
@@ -112,7 +113,7 @@ function unlockCampaignLevel(levelIndex) {
   }
 }
 
-let gameState = STATE.SPLASH;
+let gameState = STATE.STUDIO_SPLASH;
 let countdownTimer = 3;
 
 // ============================================
@@ -128,7 +129,7 @@ const tracks = [
   { id: 'cyber_circuit', name: 'Cyber Circuit', theme: 'cyber_grid', shape: 'figure8', seed: 44444, radius: 1800, pointsCount: 45 },
   { id: 'toxic_tunnels', name: 'Toxic Tunnels', theme: 'toxic_waste', shape: 'star', seed: 55555, radius: 3000, pointsCount: 70 },
   { id: 'volcanic_venture', name: 'Volcanic Venture', theme: 'volcanic', shape: 'complex', seed: 66666, radius: 4000, pointsCount: 80 },
-  { id: 'synthwave_sprint', name: 'Synthwave Sprint', theme: 'sunset_strip', shape: 'figure8', seed: 77777, radius: 2200, pointsCount: 55 },
+  { id: 'synthwave_sprint', name: 'Synthwave Sprint', theme: 'sunset_strip', shape: 'synthwave', seed: 77777, radius: 2500, pointsCount: 65 },
   { id: 'crystal_canyon', name: 'Crystal Canyon', theme: 'ice_circuit', shape: 'complex', seed: 88888, radius: 3200, pointsCount: 75 }
 ];
 
@@ -180,6 +181,8 @@ const uiP4 = {
 };
 
 // Menu Elements
+const studioSplashScreen = document.getElementById('studioSplashScreen');
+const studioVideo = document.getElementById('studioVideo');
 const splashScreen = document.getElementById('splashScreen');
 const mainMenu = document.getElementById('mainMenu');
 const settingsScreen = document.getElementById('settingsScreen');
@@ -245,6 +248,7 @@ uiLayer.classList.add('hidden');
 // ============================================
 
 function hideAllMenus() {
+  if (studioSplashScreen) studioSplashScreen.classList.add('hidden');
   splashScreen.classList.add('hidden');
   mainMenu.classList.add('hidden');
   settingsScreen.classList.add('hidden');
@@ -265,6 +269,47 @@ function showMenu(menu) {
 // ============================================
 // SPLASH SCREEN
 // ============================================
+
+function showStudioSplash() {
+  gameState = STATE.STUDIO_SPLASH;
+  showMenu(studioSplashScreen);
+  
+  if (studioVideo) {
+    studioVideo.play().catch(e => {
+        // Autoplay might be blocked by browser due to audio.
+        // We'll show an overlay or just let them click to play.
+        const prompt = document.createElement('h1');
+        prompt.textContent = "Click to Start";
+        prompt.style.position = 'absolute';
+        prompt.style.color = 'white';
+        prompt.style.fontFamily = "'Press Start 2P', monospace";
+        prompt.style.textShadow = '0 0 10px #00ffcc';
+        prompt.id = 'studioPlayPrompt';
+        studioSplashScreen.appendChild(prompt);
+        
+        studioVideo.style.opacity = '0.5';
+    });
+    
+    studioVideo.onended = () => {
+      showSplash();
+    };
+    
+    // Click to start/skip
+    studioSplashScreen.onclick = () => {
+      const prompt = document.getElementById('studioPlayPrompt');
+      if (studioVideo.paused) {
+        if (prompt) prompt.remove();
+        studioVideo.style.opacity = '1';
+        studioVideo.play();
+      } else {
+        studioVideo.pause();
+        showSplash();
+      }
+    };
+  } else {
+    showSplash();
+  }
+}
 
 function showSplash() {
   gameState = STATE.SPLASH;
@@ -1798,6 +1843,6 @@ if (syncSettingsMenuOnInit) {
 
 requestAnimationFrame((timestamp) => {
   lastTime = timestamp;
-  showSplash();
+  showStudioSplash();
   gameLoop(timestamp);
 });
