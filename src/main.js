@@ -1611,12 +1611,12 @@ function update(dt) {
                 // if player is eliminated, game over
                 if (!lastCar.isAI) {
                    lastCar.finished = true; 
-                   showGameOver(); 
+                   endGame(); 
                    return; 
                 } else if (activeCars.length === 2) {
                    const winner = activeCars[0];
                    winner.finished = true;
-                   if (!winner.isAI) setTimeout(() => showGameOver(), 1000); 
+                   if (!winner.isAI) setTimeout(() => endGame(), 1000); 
                 }
             }
          }
@@ -1626,7 +1626,7 @@ function update(dt) {
          const p1Car = cars.find(c => c.playerIndex === 0 && !c.isGhost && !c.isAI);
          if (p1Car && p1Car.hasHitGrass) {
              p1Car.finished = true; 
-             showGameOver();
+             endGame();
              return;
          }
      }
