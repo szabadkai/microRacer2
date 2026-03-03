@@ -220,6 +220,18 @@
     </div>
   </div>
 
+  <!-- Onboarding / Tutorial Screen -->
+  <div id="onboardingScreen" class="menu-screen hidden">
+    <div class="menu-container" style="max-width: 600px;">
+      <h1 id="onboardingTitle" style="color: #00ffcc; text-shadow: 0 0 10px #00ffcc;">TUTORIAL</h1>
+      <p id="onboardingText"
+        style="font-size: 1.2rem; margin: 20px 0; line-height: 1.5; text-align: left; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; border: 1px solid #333;">
+        Press Up Arrow / W / Right Trigger to accelerate.
+      </p>
+      <button class="start-btn" id="onboardingContinueBtn" style="margin-top: 20px;">Continue</button>
+    </div>
+  </div>
+
   <!-- Countdown -->
   <div id="countdownMenu" class="menu-screen hidden">
     <h1 id="countdownText" class="huge-text">3</h1>
@@ -249,8 +261,11 @@
           <span id="ghostToggleLabel">ON</span>
         </div>
       </div>
-      <button class="start-btn" id="resumeBtn">Resume</button>
-      <button class="secondary-btn" id="quitBtn">Quit to Menu</button>
+      <div class="menu-actions-column">
+        <button class="start-btn menu-action-btn" id="resumeBtn">Resume</button>
+        <button class="start-btn menu-action-btn" id="pauseRestartBtn">Restart Race</button>
+        <button class="secondary-btn menu-action-btn" id="quitBtn">Quit to Menu</button>
+      </div>
     </div>
   </div>
 
@@ -272,15 +287,14 @@
         <p>Drift Score: <span id="finalScoreValue2">0</span></p>
       </div>
     </div>
-    <div id="quickRaceActions">
-      <button class="start-btn" id="restartBtn">Rematch</button>
-      <button class="secondary-btn" id="menuBtn">Back to Menu</button>
+    <div id="quickRaceActions" class="menu-actions-column">
+      <button class="start-btn menu-action-btn" id="restartBtn">Rematch</button>
+      <button class="secondary-btn menu-action-btn" id="menuBtn">Back to Menu</button>
     </div>
-    <div id="campaignActions" class="hidden"
-      style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px;">
-      <button class="start-btn" id="nextLevelBtn">Next Level</button>
-      <button class="secondary-btn" id="retryLevelBtn">Retry</button>
-      <button class="secondary-btn" id="campaignMenuBtn">Campaign Menu</button>
+    <div id="campaignActions" class="hidden menu-actions-column" style="margin-top: 20px; align-items: center;">
+      <button class="start-btn menu-action-btn" id="nextLevelBtn">Next Level</button>
+      <button class="secondary-btn menu-action-btn" id="retryLevelBtn">Retry</button>
+      <button class="secondary-btn menu-action-btn" id="campaignMenuBtn">Campaign Menu</button>
     </div>
   </div>
 </div>

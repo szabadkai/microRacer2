@@ -42,13 +42,21 @@ export class Car {
     this.maxBoost = 100;
     this.isBoosting = false;
 
+    // Mechanics
+    this.isDrafting = false;
+    this.draftTime = 0;
+    this.hasHitGrass = false;
+
     // AI
     this.isAI = false;
     this.aiDifficulty = 'bronze';
   }
 
-  update(dt, input, trackInfo = { isOffTrack: false }) {
+  update(dt, input, trackInfo = { isOffTrack: false }, allCars = []) {
     this.onGrass = trackInfo.isOffTrack;
+    if (this.onGrass && !this.isAI) {
+      this.hasHitGrass = true;
+    }
 
     this.throttle = 0;
     let steering = 0;
@@ -286,6 +294,85 @@ export class Car {
     }
     this.skidmarks.forEach(mark => mark.age += dt);
     this.skidmarks = this.skidmarks.filter(mark => mark.age < 3); // Keep marks for 3 seconds
+
+    // 6. Slipstreaming & Collisions with other cars
+    this.isDrafting = false;
+    for (const otherCar of allCars) {
+      if (otherCar === this) continue;
+
+      const dx = otherCar.x - this.x;
+      const dy = otherCar.y - this.y;
+      const dist = Math.hypot(dx, dy);
+
+      // Collisions (circle-based, radius ~15)
+      const minDistance = 30; // 15 + 15
+      if (dist < minDistance) {
+        // Simple resolution
+        const overlap = minDistance - dist;
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        // Push apart (assuming equal mass)
+        this.x -= nx * overlap * 0.5;
+        this.y -= ny * overlap * 0.5;
+        otherCar.x += nx * overlap * 0.5;
+        otherCar.y += ny * overlap * 0.5;
+
+        // Momentum exchange
+        const relVelX = this.velocity.x - otherCar.velocity.x;
+        const relVelY = this.velocity.y - otherCar.velocity.y;
+        const speedAlongNormal = relVelX * nx + relVelY * ny;
+
+        if (speedAlongNormal > 0) {
+           const restitution = 0.5;
+           const j = -(1 + restitution) * speedAlongNormal / 2;
+           const impulseX = j * nx;
+           const impulseY = j * ny;
+
+           this.velocity.x += impulseX;
+           this.velocity.y += impulseY;
+           otherCar.velocity.x -= impulseX;
+           otherCar.velocity.y -= impulseY;
+        }
+
+        // Apply a tiny bit of angular disturbance
+        this.heading += (Math.random() - 0.5) * 0.2;
+        otherCar.heading += (Math.random() - 0.5) * 0.2;
+      }
+
+      // Slipstreaming (Drafting)
+      // Check if we are behind the other car, moving in roughly the same direction, within ~250px
+      if (dist > minDistance && dist < 250) {
+        const angleToOther = Math.atan2(dy, dx);
+        let angleDiff = Math.abs(angleToOther - this.heading);
+        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        angleDiff = Math.abs(angleDiff);
+
+        // Also check if other car's heading is roughly similar to ours
+        let headingDiff = Math.abs(this.heading - otherCar.heading);
+        while (headingDiff > Math.PI) headingDiff -= 2 * Math.PI;
+        headingDiff = Math.abs(headingDiff);
+
+        if (angleDiff < 0.3 && headingDiff < 0.5 && this.throttle > 0) {
+            this.isDrafting = true;
+        }
+      }
+    }
+
+    if (this.isDrafting) {
+        this.draftTime += dt;
+        // Apply drafting speed buff (done here as an immediate velocity push to break friction limits)
+        if (speed > 50) {
+            const draftBoost = 300 * dt;
+            this.velocity.x += Math.cos(this.heading) * draftBoost;
+            this.velocity.y += Math.sin(this.heading) * draftBoost;
+            
+            // Generate slipstream visual effect randomly
+            if (Math.random() < 0.2 && this.addSlipstreamVisual) {
+                this.addSlipstreamVisual();
+            }
+        }
+    }
   }
 
   addFloatingText(text, color, maxLife, size = 16) {

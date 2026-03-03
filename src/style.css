@@ -253,6 +253,47 @@ body::after {
   }
 }
 
+/* Onboarding Screen Specifics */
+#onboardingScreen .menu-container {
+  border-color: var(--secondary-accent);
+  box-shadow:
+    0 0 30px rgba(255, 0, 255, 0.3),
+    0 0 60px rgba(0, 255, 204, 0.2),
+    inset 0 0 30px rgba(255, 0, 255, 0.05);
+}
+
+#onboardingTitle {
+  color: var(--secondary-accent);
+  text-shadow:
+    0 0 10px var(--secondary-accent),
+    0 0 20px var(--secondary-accent),
+    0 0 40px var(--secondary-accent);
+  animation: titleGlowSecondary 2s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlowSecondary {
+  from {
+    text-shadow:
+      0 0 10px var(--secondary-accent),
+      0 0 20px var(--secondary-accent),
+      0 0 40px var(--secondary-accent);
+  }
+
+  to {
+    text-shadow:
+      0 0 20px var(--secondary-accent),
+      0 0 40px var(--tertiary-accent),
+      0 0 60px var(--secondary-accent);
+  }
+}
+
+#onboardingText {
+  color: #ddd;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 400;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
 .menu-screen h2 {
   font-family: 'Press Start 2P', monospace;
   color: var(--primary-accent);
@@ -395,6 +436,26 @@ body::after {
   border-color: #ff6688;
   color: #ff6688;
   box-shadow: 0 0 20px rgba(255, 68, 102, 0.5);
+}
+
+/* Uniform Menu Action Buttons */
+.menu-actions-column {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.menu-action-btn {
+  width: 100%;
+  height: 55px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.7rem;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 /* Player Selector Buttons */
@@ -731,7 +792,7 @@ body::after {
 
 .leaderboard-item {
   display: grid;
-  grid-template-columns: 36px 1fr auto;
+  grid-template-columns: 36px 1fr 1fr auto;
   gap: 0.75rem;
   align-items: center;
   padding: 0.65rem 0.75rem;
@@ -764,6 +825,14 @@ body::after {
   color: #888;
   text-align: right;
   white-space: nowrap;
+}
+
+.leaderboard-score {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.55rem;
+  color: var(--secondary-accent);
+  text-align: right;
+  margin-right: 15px;
 }
 
 .leaderboard-item.rank-1 .leaderboard-time {

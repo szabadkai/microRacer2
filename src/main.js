@@ -45,7 +45,8 @@ const STATE = {
   SETTINGS: 7,
   LEADERBOARD: 8,
   FINISHING: 9,
-  CAMPAIGN: 10
+  CAMPAIGN: 10,
+  ONBOARDING: 11
 };
 
 const GAMEMODE = {
@@ -58,24 +59,24 @@ let currentCampaignLevelIndex = 0;
 
 const CAMPAIGN_LEVELS = [
   // SECTION 1: Rookie
-  { id: 'c1', name: 'Rookie Run', trackIndex: 0, laps: 3, ai: ['bronze', 'bronze'], challengeText: 'Win 1st against 2 Bronze AIs' },
-  { id: 'c2', name: 'Drift Initiation', trackIndex: 1, laps: 3, ai: [], targetDriftScore: 5000, challengeText: 'Score 5,000 drift points' },
+  { id: 'c1', name: 'Rookie Run', trackIndex: 0, laps: 3, ai: ['bronze', 'bronze'], challengeText: 'Win 1st against 2 Bronze AIs', onboarding: { title: 'Welcome to microRacer 2', text: 'Use the Arrow Keys, WASD, or a Gamepad to steer and accelerate. Win 1st place to advance!' } },
+  { id: 'c2', name: 'Drift Initiation', trackIndex: 1, laps: 3, ai: [], targetDriftScore: 5000, challengeText: 'Score 5,000 drift points', onboarding: { title: 'Drift Initiation', text: 'Drift by releasing acceleration, turning sharply, and accelerating again. Chaining drifts builds a combo multiplier!' } },
   { id: 'c3', name: 'Desert Dash', trackIndex: 3, laps: 3, ai: ['bronze', 'bronze', 'bronze'], challengeText: 'Beat 3 Bronze AIs' },
-  { id: 'c4', name: 'Time Attack: Neon', trackIndex: 0, laps: 2, ai: [], targetTime: 85, challengeText: 'Finish 2 laps in under 1:25' },
+  { id: 'c4', name: 'Boost Basics', trackIndex: 0, laps: 2, ai: [], targetTime: 85, challengeText: 'Finish 2 laps in under 1:25', onboarding: { title: 'Boost Power', text: 'Press SHIFT, SPACE, or the bottom gamepad button to use your boost. Boosting uses your energy meter, which slowly refills over time.' } },
   { id: 'c5', name: 'Silver Scramble', trackIndex: 1, laps: 3, ai: ['silver', 'bronze'], challengeText: 'Beat the Silver AI' },
   { id: 'c6', name: 'BOSS: Neon Knight', trackIndex: 0, laps: 5, ai: ['boss'], challengeText: 'Defeat the Boss' },
   
   // SECTION 2: Intermediate
-  { id: 'c7', name: 'Ice Capades', trackIndex: 4, laps: 3, ai: ['silver', 'silver'], challengeText: 'Win 1st against 2 Silver AIs' },
+  { id: 'c7', name: 'Ice Capades', trackIndex: 4, laps: 3, ai: ['silver', 'silver'], challengeText: 'Win 1st against 2 Silver AIs', onboarding: { title: 'Slipstream Master', text: 'Draft closely behind opponents to gain a speed boost. Use it to slingshot past them!' } },
   { id: 'c8', name: 'Midnight Drifter', trackIndex: 2, laps: 3, ai: [], targetDriftScore: 10000, challengeText: 'Score 10,000 drift points' },
-  { id: 'c9', name: 'Time Attack: Strip', trackIndex: 1, laps: 3, ai: [], targetTime: 110, challengeText: 'Finish 3 laps in under 1:50' },
-  { id: 'c10', name: 'Synthwave Showdown', trackIndex: 8, laps: 3, ai: ['silver', 'silver', 'bronze'], challengeText: 'Win 1st on the new track' },
-  { id: 'c11', name: 'Golden Gauntlet', trackIndex: 2, laps: 4, ai: ['gold', 'silver', 'silver'], challengeText: 'Win 1st against Gold AI' },
+  { id: 'c9', name: 'Slipstream Test', trackIndex: 2, laps: 3, ai: ['gold'], targetDraftTime: 5, challengeText: 'Draft behind AI for 5 seconds total.' },
+  { id: 'c10', name: 'Synthwave Showdown', trackIndex: 8, laps: 3, ai: ['silver', 'silver', 'bronze'], challengeText: 'Win 1st on the new track', onboarding: { title: 'Clean Racing', text: 'Try to stay on the track. Driving on the grass or hitting walls slows you down significantly!' } },
+  { id: 'c11', name: 'Clean Sweep', trackIndex: 0, laps: 2, ai: [], isCleanRacing: true, challengeText: 'Finish without touching the grass!' },
   { id: 'c12', name: 'BOSS: Ice King', trackIndex: 4, laps: 5, ai: ['boss', 'silver'], challengeText: 'Defeat the Boss & his minion' },
 
   // SECTION 3: Advanced
   { id: 'c13', name: 'Cyber Sprint', trackIndex: 5, laps: 4, ai: ['gold', 'gold'], challengeText: 'Win 1st against 2 Gold AIs' },
-  { id: 'c14', name: 'Toxic Tunnels', trackIndex: 6, laps: 4, ai: ['gold', 'silver', 'silver'], challengeText: 'Survive the Tunnels in 1st' },
+  { id: 'c14', name: 'Elimination Rumble', trackIndex: 1, laps: 5, ai: ['gold', 'silver', 'silver'], isElimination: true, challengeText: 'Survive! Last place drops every 20s.', onboarding: { title: 'Elimination', text: 'A timer is ticking down. When it hits zero, the player in last place is eliminated! Stay ahead!' } },
   { id: 'c15', name: 'Crystal Drifter', trackIndex: 9, laps: 3, ai: [], targetDriftScore: 18000, challengeText: 'Score 18,000 drift points' },
   { id: 'c16', name: 'Time Attack: Cyber', trackIndex: 5, laps: 3, ai: [], targetTime: 125, challengeText: 'Finish 3 laps in under 2:05' },
   { id: 'c17', name: 'Desert Endurance', trackIndex: 3, laps: 5, ai: ['gold', 'gold', 'silver'], challengeText: 'Win 1st in the Desert' },
@@ -87,8 +88,19 @@ const CAMPAIGN_LEVELS = [
   { id: 'c21', name: 'Time Attack: Synth', trackIndex: 8, laps: 4, ai: [], targetTime: 155, challengeText: 'Finish 4 laps in under 2:35' },
   { id: 'c22', name: 'Crystal Gauntlet', trackIndex: 9, laps: 5, ai: ['boss', 'gold', 'gold'], challengeText: 'Survive the Canyon' },
   { id: 'c23', name: 'Volcanic Endurance', trackIndex: 7, laps: 6, ai: ['boss', 'boss', 'gold'], challengeText: 'Beat the Twin Bosses' },
-  { id: 'c24', name: 'FINAL BOSS: Inferno', trackIndex: 7, laps: 10, ai: ['boss', 'boss', 'boss'], challengeText: 'Ultimate Grand Prix' }
+  { id: 'c24', name: 'FINAL BOSS: Inferno', trackIndex: 7, laps: 10, ai: ['boss', 'boss', 'boss'], challengeText: 'Ultimate Grand Prix' },
+
+  // SECTION 5: Legend
+  { id: 'c25', name: 'Legendary Drift', trackIndex: 7, laps: 4, ai: [], targetDriftScore: 40000, challengeText: 'Score 40,000 drift points' },
+  { id: 'c26', name: 'Clean Legend', trackIndex: 9, laps: 3, ai: [], isCleanRacing: true, targetTime: 140, challengeText: 'Clean Race under 2:20' },
+  { id: 'c27', name: 'Ultimate Elimination', trackIndex: 8, laps: 7, ai: ['boss', 'gold', 'gold'], isElimination: true, challengeText: 'Survive the ultimate elimination!' },
+  { id: 'c28', name: 'Slipstream Legend', trackIndex: 5, laps: 5, ai: ['boss'], targetDraftTime: 10, challengeText: 'Draft behind the Boss for 10 seconds total.' },
+  { id: 'c29', name: 'Golden Grand Prix', trackIndex: 6, laps: 6, ai: ['boss', 'gold', 'gold'], challengeText: 'Win 1st in the Toxic Tunnels' },
+  { id: 'c30', name: 'TRUE FINAL BOSS', trackIndex: 2, laps: 12, ai: ['boss', 'boss', 'boss'], challengeText: 'The Ultimate Racing Challenge' }
 ];
+
+let eliminationTimer = 0;
+const ELIMINATION_INTERVAL = 20;
 
 function getUnlockedCampaignLevel() {
   return parseInt(localStorage.getItem('unlockedCampaignLevel') || '0');
@@ -175,6 +187,10 @@ const leaderboardScreen = document.getElementById('leaderboardScreen');
 const campaignMenu = document.getElementById('campaignMenu');
 const lobbyMenu = document.getElementById('lobbyMenu');
 const countdownMenu = document.getElementById('countdownMenu');
+const onboardingScreen = document.getElementById('onboardingScreen');
+const onboardingTitle = document.getElementById('onboardingTitle');
+const onboardingText = document.getElementById('onboardingText');
+const onboardingContinueBtn = document.getElementById('onboardingContinueBtn');
 const pauseMenu = document.getElementById('pauseMenu');
 const gameOverMenu = document.getElementById('gameOverMenu');
 const uiLayer = document.getElementById('ui');
@@ -192,6 +208,7 @@ const leaderboardClearBtn = document.getElementById('leaderboardClearBtn');
 const startRaceBtn = document.getElementById('startRaceBtn');
 const lobbyBackBtn = document.getElementById('lobbyBackBtn');
 const resumeBtn = document.getElementById('resumeBtn');
+const pauseRestartBtn = document.getElementById('pauseRestartBtn');
 const quitBtn = document.getElementById('quitBtn');
 const restartBtn = document.getElementById('restartBtn');
 const menuBtn = document.getElementById('menuBtn');
@@ -235,6 +252,7 @@ function hideAllMenus() {
   campaignMenu.classList.add('hidden');
   lobbyMenu.classList.add('hidden');
   countdownMenu.classList.add('hidden');
+  onboardingScreen.classList.add('hidden');
   pauseMenu.classList.add('hidden');
   gameOverMenu.classList.add('hidden');
 }
@@ -496,6 +514,7 @@ function loadLeaderboard() {
     <li class="leaderboard-item ${index === 0 ? 'rank-1' : ''}">
       <span class="leaderboard-rank">${index + 1}.</span>
       <span class="leaderboard-time">${formatTime(record.time)}</span>
+      <span class="leaderboard-score">${record.score || 0}</span>
       <span class="leaderboard-meta">${record.playerName}</span>
     </li>
   `).join('');
@@ -512,11 +531,11 @@ function getLeaderboardRecords(trackId) {
   }
 }
 
-function saveLeaderboardRecord(trackId, time, playerName) {
+function saveLeaderboardRecord(trackId, time, score, playerName) {
   try {
     const key = `leaderboard_${trackId}`;
     const records = getLeaderboardRecords(trackId);
-    records.push({ time, playerName, date: Date.now() });
+    records.push({ time, score, playerName, date: Date.now() });
     records.sort((a, b) => a.time - b.time);
     const topRecords = records.slice(0, 10); // Keep top 10
     localStorage.setItem(key, JSON.stringify(topRecords));
@@ -668,6 +687,11 @@ function startGame() {
   if (currentGameMode === GAMEMODE.QUICKRACE) {
     // Keep maxLaps default or read from settings if we add them later
     maxLaps = 3;
+  } else if (currentGameMode === GAMEMODE.CAMPAIGN) {
+    const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+    if (level.isElimination) {
+       eliminationTimer = ELIMINATION_INTERVAL;
+    }
   }
   
   // Update HUD
@@ -761,6 +785,24 @@ function startGame() {
     document.getElementById('hud-p4').style.display = cars.length > 3 ? 'block' : 'none';
   }
 
+  if (currentGameMode === GAMEMODE.CAMPAIGN) {
+    const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+    if (level.onboarding) {
+      gameState = STATE.ONBOARDING;
+      hideAllMenus();
+      onboardingTitle.textContent = level.onboarding.title;
+      onboardingText.textContent = level.onboarding.text;
+      onboardingScreen.classList.remove('hidden');
+      uiLayer.classList.remove('hidden'); // Keep UI visible behind it if desired
+      audioManager.setEngineMuted(true);
+      return; // Wait for continue button
+    }
+  }
+
+  startCountdown();
+}
+
+function startCountdown() {
   gameState = STATE.COUNTDOWN;
   hideAllMenus();
   countdownMenu.classList.remove('hidden');
@@ -792,6 +834,14 @@ function startGame() {
   }, 1000);
 }
 
+// Onboarding logic
+onboardingContinueBtn.addEventListener('click', () => {
+  if (gameState === STATE.ONBOARDING) {
+    onboardingScreen.classList.add('hidden');
+    startCountdown();
+  }
+});
+
 let previousState = STATE.PLAYING;
 
 function pauseGame() {
@@ -821,7 +871,7 @@ function endGame() {
   // Save leaderboard records
   cars.forEach((car, i) => {
     if (car.bestLapTime < Infinity && !car.isGhost && !car.isAI) {
-      saveLeaderboardRecord(tracks[currentTrackIndex].id, car.bestLapTime, `Player ${i + 1}`);
+      saveLeaderboardRecord(tracks[currentTrackIndex].id, car.bestLapTime, car.score, `Player ${i + 1}`);
     }
   });
 
@@ -844,8 +894,11 @@ function endGame() {
 
     if (level.targetDriftScore && p1Car.score < level.targetDriftScore) challengePassed = false;
     if (level.targetTime && totalRaceTime > level.targetTime) challengePassed = false;
-    if (level.ai && level.ai.length > 0 && playerPos > 1) challengePassed = false; // Requires 1st place if there are AI
+    if (level.targetDraftTime && p1Car.draftTime < level.targetDraftTime) challengePassed = false;
+    if (level.ai && level.ai.length > 0 && playerPos > 1 && !level.isElimination && !level.targetDraftTime) challengePassed = false; // Requires 1st place if there are AI (except elimination/drafting)
     if (!p1Car.finished) challengePassed = false; // Must finish
+    if (level.isCleanRacing && p1Car.hasHitGrass) challengePassed = false;
+    if (level.isElimination && p1Car.eliminated) challengePassed = false;
 
     if (challengePassed) {
       if (campaignResultText) {
@@ -945,6 +998,7 @@ lobbyBackBtn.addEventListener('click', showMainMenu);
 
 // Pause menu buttons
 resumeBtn.addEventListener('click', resumeGame);
+pauseRestartBtn.addEventListener('click', startGame);
 quitBtn.addEventListener('click', quitToMenu);
 
 // Game over buttons
@@ -1381,6 +1435,42 @@ function updateHUD(car) {
          goalStatus.style.color = 'var(--primary-accent)';
          goalStatus.style.textShadow = '0 0 10px var(--primary-accent)';
       }
+    } else if (level.targetDraftTime) {
+      goalTitle.textContent = `TARGET: ${level.targetDraftTime}s`;
+      goalStatus.textContent = car.draftTime.toFixed(1) + 's';
+      if (car.draftTime >= level.targetDraftTime) {
+        goalStatus.style.color = 'var(--success-color)';
+        goalStatus.style.textShadow = '0 0 10px var(--success-color)';
+      } else {
+        goalStatus.style.color = 'var(--tertiary-accent)';
+        goalStatus.style.textShadow = '0 0 10px var(--tertiary-accent)';
+      }
+    } else if (level.isCleanRacing) {
+      goalTitle.textContent = 'STATUS';
+      if (car.hasHitGrass) {
+        goalStatus.textContent = 'FAILED';
+        goalStatus.style.color = 'rgba(255, 51, 102, 1)';
+        goalStatus.style.textShadow = '0 0 10px rgba(255, 51, 102, 0.8)';
+      } else {
+        goalStatus.textContent = 'CLEAN';
+        goalStatus.style.color = 'var(--success-color)';
+        goalStatus.style.textShadow = '0 0 10px var(--success-color)';
+      }
+    } else if (level.isElimination) {
+      goalTitle.textContent = `ELIMINATION: ${Math.ceil(eliminationTimer)}s`;
+      
+      const activeCars = cars.filter(c => !c.eliminated && !c.finished);
+      goalStatus.textContent = `${activeCars.length} LEFT`;
+      if (activeCars.length <= 1) {
+        goalStatus.style.color = 'var(--success-color)';
+        goalStatus.style.textShadow = '0 0 10px var(--success-color)';
+      } else if (eliminationTimer < 5) {
+        goalStatus.style.color = 'rgba(255, 51, 102, 1)';
+        goalStatus.style.textShadow = '0 0 10px rgba(255, 51, 102, 0.8)';
+      } else {
+        goalStatus.style.color = 'var(--player1-color)';
+        goalStatus.style.textShadow = '0 0 10px var(--player1-color)';
+      }
     } else {
       // Race Challenges (Win 1st place)
       goalTitle.textContent = 'POSITION';
@@ -1435,9 +1525,52 @@ function update(dt) {
   let maxSpeed = 0;
   let someoneDrifting = false;
 
+  if (currentGameMode === GAMEMODE.CAMPAIGN && totalRaceTime > 0) {
+     const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+     
+     if (level.isElimination) {
+         eliminationTimer -= dt;
+         if (eliminationTimer <= 0) {
+            // Find last place active car
+            const activeCars = cars.filter(c => !c.eliminated && !c.finished);
+            if (activeCars.length > 1) {
+                activeCars.sort((a,b) => {
+                   const aSp = track.getPointInfo(a.x, a.y).progressIndex / track.splinePoints.length;
+                   const bSp = track.getPointInfo(b.x, b.y).progressIndex / track.splinePoints.length;
+                   return (b.currentLap + bSp) - (a.currentLap + aSp);
+                });
+                
+                const lastCar = activeCars[activeCars.length - 1];
+                lastCar.eliminated = true;
+                eliminationTimer = ELIMINATION_INTERVAL;
+                
+                // if player is eliminated, game over
+                if (!lastCar.isAI) {
+                   lastCar.finished = true; 
+                   showGameOver(); 
+                   return; 
+                } else if (activeCars.length === 2) {
+                   const winner = activeCars[0];
+                   winner.finished = true;
+                   if (!winner.isAI) setTimeout(() => showGameOver(), 1000); 
+                }
+            }
+         }
+     }
+     
+     if (level.isCleanRacing) {
+         const p1Car = cars.find(c => c.playerIndex === 0 && !c.isGhost && !c.isAI);
+         if (p1Car && p1Car.hasHitGrass) {
+             p1Car.finished = true; 
+             showGameOver();
+             return;
+         }
+     }
+  }
+
   cars.forEach((car, i) => {
-    // Skip finished players - they don't update
-    if (car.finished) {
+    // Skip finished or eliminated players
+    if (car.finished || car.eliminated) {
       // Keep the car stationary
       car.velocity.x = 0;
       car.velocity.y = 0;
@@ -1446,7 +1579,7 @@ function update(dt) {
 
     const trackInfo = track.getPointInfo(car.x, car.y);
     trackInfo.splinePoints = track.splinePoints;
-    car.update(dt, input, trackInfo);
+    car.update(dt, input, trackInfo, cars);
     updateHUD(car);
 
     if (ghostRecorders[i]) ghostRecorders[i].recordFrame(car, dt);
@@ -1481,7 +1614,9 @@ function drawWorldForCar(car, viewWidth, viewHeight) {
   track.draw(ctx);
 
   // Draw skidmarks before particles (smoke)
-  cars.forEach(c => c.drawSkidmarks(ctx));
+  cars.forEach(c => {
+    if (!c.eliminated) c.drawSkidmarks(ctx);
+  });
 
   particles.draw(ctx);
 
