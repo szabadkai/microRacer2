@@ -29,10 +29,22 @@ export class Car {
     this.throttle = 0;
     this.skidmarks = [];          // Simple trail for visuals
 
+    // Drift Scoring
+    this.pendingDriftScore = 0;
+    this.comboMultiplier = 1;
+    this.comboTimer = 0;
+    this.driftDuration = 0;
+    this.floatingTexts = [];      // Floating score visual flares
+    this.comboBreakCooldown = 0;  // Cooldown for splash text
+
     // Boost
     this.boostLevel = 0;
     this.maxBoost = 100;
     this.isBoosting = false;
+
+    // AI
+    this.isAI = false;
+    this.aiDifficulty = 'bronze';
   }
 
   update(dt, input, trackInfo = { isOffTrack: false }) {
@@ -42,32 +54,66 @@ export class Car {
     let steering = 0;
     let attemptingBoost = false;
 
-    // Keyboard Input
-    if (input.isDown(this.controls.up)) this.throttle = 1;
-    if (input.isDown(this.controls.down)) this.throttle = -0.5;
-    if (input.isDown(this.controls.left)) steering = -1;
-    if (input.isDown(this.controls.right)) steering = 1;
+    if (this.isAI && trackInfo.splinePoints) {
+      // AI Logic
+      let lookaheadNodes = 5;
+      if (this.aiDifficulty === 'bronze') lookaheadNodes = 7;
+      else if (this.aiDifficulty === 'silver') lookaheadNodes = 5;
+      else if (this.aiDifficulty === 'gold') lookaheadNodes = 4;
+      
+      const targetIndex = (trackInfo.progressIndex + lookaheadNodes) % trackInfo.splinePoints.length;
+      const targetPoint = trackInfo.splinePoints[targetIndex];
+      
+      let targetAngle = Math.atan2(targetPoint.y - this.y, targetPoint.x - this.x);
+      let angleDiff = targetAngle - this.heading;
+      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+      
+      if (angleDiff > 0.1) steering = Math.min(1, angleDiff * 3);
+      else if (angleDiff < -0.1) steering = Math.max(-1, angleDiff * 3);
+      else steering = angleDiff * 5;
+      
+      // Throttle logic
+      if (Math.abs(angleDiff) > Math.PI / 4) {
+         this.throttle = 0.6;
+         if (Math.abs(angleDiff) > Math.PI / 2) this.throttle = -0.5;
+      } else {
+         this.throttle = 1;
+      }
+      
+      // Bronze wobble
+      if (this.aiDifficulty === 'bronze' && Math.random() < 0.05) steering += (Math.random() - 0.5) * 0.5;
+      // Gold boost
+      if (this.aiDifficulty === 'gold' && Math.abs(angleDiff) < 0.15 && this.boostLevel > 15) attemptingBoost = true;
 
-    // Analog steering override (for mobile touch steering)
-    if (input.analogSteering !== undefined && input.analogSteering !== 0) {
-      steering = input.analogSteering;
-    }
-    // Allow both left and right shift for boost (for player 1 / single player)
-    if (input.isDown(this.controls.boost) ||
-      (this.controls.boost === 'ShiftRight' && input.isDown('ShiftLeft'))) {
-      attemptingBoost = true;
-    }
+    } else {
+      // Human Input
+      if (input.isDown(this.controls.up)) this.throttle = 1;
+      if (input.isDown(this.controls.down)) this.throttle = -0.5;
+      if (input.isDown(this.controls.left)) steering = -1;
+      if (input.isDown(this.controls.right)) steering = 1;
 
-    // Gamepad Input overlay
-    if (this.gamepadIndex !== undefined) {
-      if (input.gamepadManager) {
-        const gpThrottle = input.gamepadManager.getThrottle(this.gamepadIndex);
-        if (gpThrottle !== 0) this.throttle = gpThrottle;
+      // Analog steering override (for mobile touch steering)
+      if (input.analogSteering !== undefined && input.analogSteering !== 0) {
+        steering = input.analogSteering;
+      }
+      // Allow both left and right shift for boost (for player 1 / single player)
+      if (input.isDown(this.controls.boost) ||
+        (this.controls.boost === 'ShiftRight' && input.isDown('ShiftLeft'))) {
+        attemptingBoost = true;
+      }
 
-        const gpSteer = input.gamepadManager.getSteer(this.gamepadIndex);
-        if (gpSteer !== 0) steering = gpSteer;
+      // Gamepad Input overlay
+      if (this.gamepadIndex !== undefined) {
+        if (input.gamepadManager) {
+          const gpThrottle = input.gamepadManager.getThrottle(this.gamepadIndex);
+          if (gpThrottle !== 0) this.throttle = gpThrottle;
 
-        if (input.gamepadManager.isBoosting(this.gamepadIndex)) attemptingBoost = true;
+          const gpSteer = input.gamepadManager.getSteer(this.gamepadIndex);
+          if (gpSteer !== 0) steering = gpSteer;
+
+          if (input.gamepadManager.isBoosting(this.gamepadIndex)) attemptingBoost = true;
+        }
       }
     }
 
@@ -97,8 +143,63 @@ export class Car {
     // 3. Determine Drift State
     if (!this.isDrifting && slipAngle > this.driftThreshold && speed > 200) {
       this.isDrifting = true;
+      this.driftDuration = 0;
     } else if (this.isDrifting && slipAngle < this.recoveryThreshold) {
       this.isDrifting = false;
+      this.comboTimer = 2.0; // 2 seconds to resume drift or bank score
+    }
+
+    // Drift Scoring Logic
+    if (this.isDrifting) {
+      this.driftDuration += dt;
+      this.comboTimer = 0; // Reset timer while actively drifting
+
+      // Increase multiplier every 1.5 seconds of continuous drifting
+      const newMultiplier = 1 + Math.floor(this.driftDuration / 1.5);
+      if (newMultiplier > this.comboMultiplier) {
+        this.comboMultiplier = newMultiplier;
+        let color = '#00ffff'; // x2 cyan
+        if (this.comboMultiplier === 3) color = '#ff00ff'; // x3 magenta
+        if (this.comboMultiplier >= 4) color = '#ff3300'; // x4+ bold red-orange
+        const size = 20 + (this.comboMultiplier * 4);
+        this.addFloatingText(`x${this.comboMultiplier} COMBO!`, color, 1.5, size);
+      }
+
+      // Add pending score based on speed and angle
+      const driftScoreRate = (speed / 100) * (slipAngle * 10) * 10;
+      this.pendingDriftScore += driftScoreRate * dt;
+
+    } else if (this.comboTimer > 0) {
+      this.comboTimer -= dt;
+      if (this.comboTimer <= 0) {
+        this.bankPendingScore();
+      }
+    }
+
+    if (this.comboBreakCooldown > 0) {
+        this.comboBreakCooldown -= dt;
+    }
+
+    if (this.onGrass && (this.pendingDriftScore > 0 || this.comboMultiplier > 1)) {
+        // Break combo
+        this.pendingDriftScore = 0;
+        this.comboMultiplier = 1;
+        this.comboTimer = 0;
+        this.driftDuration = 0;
+        if (this.comboBreakCooldown <= 0) {
+            this.addFloatingText("COMBO BROKEN!", '#ff0000', 1.5, 26);
+            this.comboBreakCooldown = 3.0; // Prevent spam for 3 seconds
+        }
+    }
+    
+    // Update floating texts
+    for(let i = this.floatingTexts.length - 1; i >= 0; i--) {
+        let ft = this.floatingTexts[i];
+        ft.life -= dt;
+        ft.y -= 30 * dt; // Float up relative to car
+        if(ft.life <= 0) {
+            this.floatingTexts.splice(i, 1);
+        }
     }
 
     // 4. Boost Logic
@@ -182,6 +283,24 @@ export class Car {
     }
     this.skidmarks.forEach(mark => mark.age += dt);
     this.skidmarks = this.skidmarks.filter(mark => mark.age < 3); // Keep marks for 3 seconds
+  }
+
+  addFloatingText(text, color, maxLife, size = 16) {
+    this.floatingTexts.push({ text, color, life: maxLife, maxLife, y: -20, size });
+  }
+
+  bankPendingScore() {
+    if (this.pendingDriftScore > 50) {
+      const finalScore = Math.floor(this.pendingDriftScore * this.comboMultiplier);
+      this.score = (this.score || 0) + finalScore;
+      this.addFloatingText(`+${finalScore}`, '#00ffcc', 2.0, 22);
+    }
+    
+    // Reset combo
+    this.pendingDriftScore = 0;
+    this.comboMultiplier = 1;
+    this.driftDuration = 0;
+    this.comboTimer = 0;
   }
 
   drawSkidmarks(ctx) {
@@ -357,5 +476,32 @@ export class Car {
     ctx.fillRect(0, -8, 8, 16);
 
     ctx.restore();
+
+    // Draw Floating Texts (unrotated)
+    if (this.floatingTexts && this.floatingTexts.length > 0) {
+      ctx.save();
+      ctx.translate(this.x, this.y); // Translate to car pos
+      // We don't rotate
+      ctx.textAlign = 'center';
+      
+      for (const ft of this.floatingTexts) {
+        const alpha = Math.max(0, ft.life / ft.maxLife);
+        ctx.fillStyle = ft.color;
+        ctx.globalAlpha = alpha;
+        
+        ctx.font = `900 ${ft.size}px "Orbitron", sans-serif`; // bolder
+        
+        // Adding a subtle shadow/outline for readability
+        ctx.shadowColor = '#000';
+        ctx.shadowBlur = 6;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000';
+        ctx.strokeText(ft.text, 0, ft.y);
+        
+        ctx.shadowBlur = 0;
+        ctx.fillText(ft.text, 0, ft.y);
+      }
+      ctx.restore();
+    }
   }
 }

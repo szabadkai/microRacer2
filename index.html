@@ -118,7 +118,11 @@
         </div>
       </div>
 
-      <button class="start-btn" id="startBtn">Start Race</button>
+      <div style="display: flex; gap: 1rem; width: 100%; justify-content: center; margin-bottom: 15px;">
+        <button class="start-btn" id="startBtn" style="flex: 1; padding: 12px;">Quick Race</button>
+        <button class="start-btn" id="campaignBtn"
+          style="flex: 1; background: #8a2be2; padding: 12px; border-color: #ba55d3; color: white; text-shadow: 0 0 5px #ba55d3; box-shadow: 0 0 10px rgba(138,43,226,0.5);">Campaign</button>
+      </div>
 
       <div class="menu-actions">
         <button class="secondary-btn" id="settingsBtn">Settings</button>
@@ -185,6 +189,17 @@
     </div>
   </div>
 
+  <!-- Campaign Menu -->
+  <div id="campaignMenu" class="menu-screen hidden">
+    <div class="menu-container" style="max-width: 800px; width: 90%;">
+      <h2>Campaign Mode</h2>
+      <div id="campaignLevelGrid" class="level-grid">
+        <!-- populated by js -->
+      </div>
+      <button class="secondary-btn" id="campaignBackBtn" style="margin-top: 20px;">Back to Menu</button>
+    </div>
+  </div>
+
   <!-- Lobby Menu (for multiplayer join) -->
   <div id="lobbyMenu" class="menu-screen hidden">
     <div class="menu-container">
@@ -235,6 +250,7 @@
   <!-- Game Over Menu -->
   <div id="gameOverMenu" class="menu-screen hidden">
     <h1 id="winnerText">RACE OVER</h1>
+    <h2 id="campaignResultText" class="hidden" style="margin-bottom: 20px;"></h2>
     <div class="stats-container">
       <div class="stats p1-stats">
         <h2>PLAYER 1</h2>
@@ -249,8 +265,16 @@
         <p>Drift Score: <span id="finalScoreValue2">0</span></p>
       </div>
     </div>
-    <button class="start-btn" id="restartBtn">Rematch</button>
-    <button class="secondary-btn" id="menuBtn">Back to Menu</button>
+    <div id="quickRaceActions">
+      <button class="start-btn" id="restartBtn">Rematch</button>
+      <button class="secondary-btn" id="menuBtn">Back to Menu</button>
+    </div>
+    <div id="campaignActions" class="hidden"
+      style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px;">
+      <button class="start-btn" id="nextLevelBtn">Next Level</button>
+      <button class="secondary-btn" id="retryLevelBtn">Retry</button>
+      <button class="secondary-btn" id="campaignMenuBtn">Campaign Menu</button>
+    </div>
   </div>
 </div>
 

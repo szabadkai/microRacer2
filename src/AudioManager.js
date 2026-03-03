@@ -13,6 +13,8 @@ export class AudioManager {
     this.masterGain.gain.value = 0.4;
     this.masterGain.connect(this.ctx.destination);
 
+    this.isEngineMuted = false;
+
     // Engine Sound
     this.engineOsc = this.ctx.createOscillator();
     this.engineOsc.type = 'sawtooth';
@@ -99,7 +101,7 @@ export class AudioManager {
   }
 
   update(speed, isDrifting) {
-    if (!this.initialized) return;
+    if (!this.initialized || this.isEngineMuted) return;
 
     // Engine sound based on speed. Pitch mapping.
     const maxSpeed = 800; // Expected max speed before boost
@@ -116,6 +118,35 @@ export class AudioManager {
     // Tire Squeal
     const targetSquealGain = isDrifting ? 0.3 : 0;
     this.squealGain.gain.setTargetAtTime(targetSquealGain, this.ctx.currentTime, 0.05);
+  }
+
+  setEngineMuted(muted) {
+    if (!this.initialized) return;
+    this.isEngineMuted = muted;
+    if (muted) {
+      this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+      this.squealGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  playBeep(freq = 440, type = 'short') {
+    if (!this.initialized || this.ctx.state !== 'running') return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    
+    gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+    
+    const duration = type === 'short' ? 0.1 : 0.5;
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + duration);
   }
 
   setMusicVolume(value) {

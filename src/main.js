@@ -28,7 +28,7 @@ let ghostPlayers = [];
 let lastTime = 0;
 let lastDt = 0;
 let totalRaceTime = 0;
-const maxLaps = 5;
+let maxLaps = 3;
 
 // ============================================
 // GAME STATE
@@ -44,8 +44,35 @@ const STATE = {
   GAMEOVER: 6,
   SETTINGS: 7,
   LEADERBOARD: 8,
-  FINISHING: 9
+  FINISHING: 9,
+  CAMPAIGN: 10
 };
+
+const GAMEMODE = {
+  QUICKRACE: 0,
+  CAMPAIGN: 1
+};
+
+let currentGameMode = GAMEMODE.QUICKRACE;
+let currentCampaignLevelIndex = 0;
+
+const CAMPAIGN_LEVELS = [
+  { id: 'c1', name: 'Rookie Run', trackIndex: 0, laps: 3, ai: ['bronze', 'bronze'], challengeText: 'Win 1st against 2 Bronze AIs' },
+  { id: 'c2', name: 'Drift Initiation', trackIndex: 1, laps: 3, ai: [], targetDriftScore: 5000, challengeText: 'Score 5000 drift points' },
+  { id: 'c3', name: 'Silver Scramble', trackIndex: 3, laps: 3, ai: ['silver', 'bronze'], challengeText: 'Beat the Silver AI' },
+  { id: 'c4', name: 'Time Attack', trackIndex: 4, laps: 3, ai: [], targetTime: 120, challengeText: 'Finish in under 2:00' },
+  { id: 'c5', name: 'Golden Gauntlet', trackIndex: 6, laps: 5, ai: ['gold', 'silver', 'silver'], challengeText: 'Win 1st against Gold AI' }
+];
+
+function getUnlockedCampaignLevel() {
+  return parseInt(localStorage.getItem('unlockedCampaignLevel') || '0');
+}
+function unlockCampaignLevel(levelIndex) {
+  const current = getUnlockedCampaignLevel();
+  if (levelIndex > current) {
+    localStorage.setItem('unlockedCampaignLevel', levelIndex.toString());
+  }
+}
 
 let gameState = STATE.SPLASH;
 let countdownTimer = 3;
@@ -55,14 +82,14 @@ let countdownTimer = 3;
 // ============================================
 
 const tracks = [
-  { id: 'neon_circuit', name: 'Neon Circuit', theme: 'neon_circuit', shape: 'loop', seed: 12345 },
-  { id: 'sunset_speedway', name: 'Sunset Speedway', theme: 'sunset_strip', shape: 'oval', seed: 54321 },
-  { id: 'midnight_maze', name: 'Midnight Maze', theme: 'midnight_run', shape: 'complex', seed: 11111 },
-  { id: 'desert_dunes', name: 'Desert Dunes', theme: 'desert_storm', shape: 'kidney', seed: 22222 },
-  { id: 'ice_circuit', name: 'Ice Circuit', theme: 'ice_circuit', shape: 'loop', seed: 33333 },
-  { id: 'cyber_circuit', name: 'Cyber Circuit', theme: 'cyber_grid', shape: 'figure8', seed: 44444 },
-  { id: 'toxic_tunnels', name: 'Toxic Tunnels', theme: 'toxic_waste', shape: 'star', seed: 55555 },
-  { id: 'volcanic_venture', name: 'Volcanic Venture', theme: 'volcanic', shape: 'complex', seed: 66666 }
+  { id: 'neon_circuit', name: 'Neon Circuit', theme: 'neon_circuit', shape: 'loop', seed: 12345, radius: 1000, pointsCount: 30 },
+  { id: 'sunset_speedway', name: 'Sunset Speedway', theme: 'sunset_strip', shape: 'oval', seed: 54321, radius: 1500, pointsCount: 40 },
+  { id: 'midnight_maze', name: 'Midnight Maze', theme: 'midnight_run', shape: 'complex', seed: 11111, radius: 2500, pointsCount: 60 },
+  { id: 'desert_dunes', name: 'Desert Dunes', theme: 'desert_storm', shape: 'kidney', seed: 22222, radius: 2000, pointsCount: 50 },
+  { id: 'ice_circuit', name: 'Ice Circuit', theme: 'ice_circuit', shape: 'loop', seed: 33333, radius: 1200, pointsCount: 35 },
+  { id: 'cyber_circuit', name: 'Cyber Circuit', theme: 'cyber_grid', shape: 'figure8', seed: 44444, radius: 1800, pointsCount: 45 },
+  { id: 'toxic_tunnels', name: 'Toxic Tunnels', theme: 'toxic_waste', shape: 'star', seed: 55555, radius: 3000, pointsCount: 70 },
+  { id: 'volcanic_venture', name: 'Volcanic Venture', theme: 'volcanic', shape: 'complex', seed: 66666, radius: 4000, pointsCount: 80 }
 ];
 
 let currentTrackIndex = 0;
@@ -117,6 +144,7 @@ const splashScreen = document.getElementById('splashScreen');
 const mainMenu = document.getElementById('mainMenu');
 const settingsScreen = document.getElementById('settingsScreen');
 const leaderboardScreen = document.getElementById('leaderboardScreen');
+const campaignMenu = document.getElementById('campaignMenu');
 const lobbyMenu = document.getElementById('lobbyMenu');
 const countdownMenu = document.getElementById('countdownMenu');
 const pauseMenu = document.getElementById('pauseMenu');
@@ -125,6 +153,9 @@ const uiLayer = document.getElementById('ui');
 
 // Buttons
 const startBtn = document.getElementById('startBtn');
+const campaignBtn = document.getElementById('campaignBtn');
+const campaignBackBtn = document.getElementById('campaignBackBtn');
+const campaignLevelGrid = document.getElementById('campaignLevelGrid');
 const settingsBtn = document.getElementById('settingsBtn');
 const leaderboardBtn = document.getElementById('leaderboardBtn');
 const settingsBackBtn = document.getElementById('settingsBackBtn');
@@ -173,6 +204,7 @@ function hideAllMenus() {
   mainMenu.classList.add('hidden');
   settingsScreen.classList.add('hidden');
   leaderboardScreen.classList.add('hidden');
+  campaignMenu.classList.add('hidden');
   lobbyMenu.classList.add('hidden');
   countdownMenu.classList.add('hidden');
   pauseMenu.classList.add('hidden');
@@ -203,9 +235,48 @@ function skipSplash() {
 
 function showMainMenu() {
   gameState = STATE.MENU;
+  currentGameMode = GAMEMODE.QUICKRACE;
   showMenu(mainMenu);
   updateTrackDisplay();
   updateControlsDisplay();
+}
+
+// ============================================
+// CAMPAIGN MENU
+// ============================================
+
+function showCampaignMenu() {
+  gameState = STATE.CAMPAIGN;
+  showMenu(campaignMenu);
+  
+  const unlockedLevel = getUnlockedCampaignLevel();
+  campaignLevelGrid.innerHTML = '';
+  
+  CAMPAIGN_LEVELS.forEach((level, index) => {
+    const isLocked = index > unlockedLevel;
+    const card = document.createElement('div');
+    card.className = `level-card ${isLocked ? 'locked' : ''}`;
+    
+    card.innerHTML = `
+      <h3>${index + 1}. ${level.name}</h3>
+      <p>Track: ${tracks[level.trackIndex].name}</p>
+      <div class="challenge">${level.challengeText}</div>
+    `;
+    
+    if (!isLocked) {
+      card.addEventListener('click', () => {
+        currentCampaignLevelIndex = index;
+        currentGameMode = GAMEMODE.CAMPAIGN;
+        currentTrackIndex = level.trackIndex;
+        selectedPlayerCount = 1; // Always single player
+        joinedPlayers = [];
+        maxLaps = level.laps;
+        startGame();
+      });
+    }
+    
+    campaignLevelGrid.appendChild(card);
+  });
 }
 
 function updateTrackDisplay() {
@@ -529,6 +600,17 @@ function startGame() {
   audioManager.resume();
   totalRaceTime = 0;
 
+  if (currentGameMode === GAMEMODE.QUICKRACE) {
+    // Keep maxLaps default or read from settings if we add them later
+    maxLaps = 3;
+  }
+  
+  // Update HUD
+  uiP1.maxLapsValue.textContent = maxLaps;
+  uiP2.maxLapsValue.textContent = maxLaps;
+  uiP3.maxLapsValue.textContent = maxLaps;
+  uiP4.maxLapsValue.textContent = maxLaps;
+
   // Initialize Cars based on joined players
   cars = [];
   ghostRecorders = [];
@@ -536,7 +618,7 @@ function startGame() {
 
   // Create track with selected theme, shape, and seed
   const selectedTrack = tracks[currentTrackIndex];
-  track = new Track(1000, 30, selectedTrack.theme, selectedTrack.shape, selectedTrack.seed);
+  track = new Track(selectedTrack.radius || 1000, selectedTrack.pointsCount || 30, selectedTrack.theme, selectedTrack.shape, selectedTrack.seed);
 
   const startPos = track.getStartPos();
 
@@ -544,6 +626,16 @@ function startGame() {
   if (joinedPlayers.length === 0 && selectedPlayerCount === 1) {
     const controls = getPlayerControls(0);
     joinedPlayers.push({ gamepadIndex: null, controls: 'arrows', controlKeys: controls.keys });
+    
+    // Add AI if campaign mode
+    if (currentGameMode === GAMEMODE.CAMPAIGN) {
+      const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+      if (level.ai && level.ai.length > 0) {
+        level.ai.forEach(difficulty => {
+           joinedPlayers.push({ isAI: true, difficulty });
+        });
+      }
+    }
   }
 
   joinedPlayers.forEach((setup, i) => {
@@ -551,10 +643,25 @@ function startGame() {
     const dirX = Math.cos(startPos.heading + Math.PI / 2) * xOffset;
     const dirY = Math.sin(startPos.heading + Math.PI / 2) * xOffset;
 
-    const car = new Car(startPos.x + dirX, startPos.y + dirY, playerColors[i], setup.controlKeys);
+    const car = new Car(startPos.x + dirX, startPos.y + dirY, playerColors[i % playerColors.length], setup.controlKeys || getPlayerControls(i).keys);
     car.heading = startPos.heading;
     car.gamepadIndex = setup.gamepadIndex;
     car.playerIndex = i;
+    
+    if (setup.isAI) {
+      car.isAI = true;
+      car.aiDifficulty = setup.difficulty;
+      if (setup.difficulty === 'bronze') {
+         car.maxSpeed = 650;
+         car.acceleration = 500;
+      } else if (setup.difficulty === 'silver') {
+         car.maxSpeed = 750;
+         car.acceleration = 550;
+      } else if (setup.difficulty === 'gold') {
+         car.maxSpeed = 820;
+         car.acceleration = 620;
+      }
+    }
 
     car.currentLap = 1;
     car.currentLapTime = 0;
@@ -581,21 +688,27 @@ function startGame() {
   uiLayer.classList.remove('hidden');
   if (touchEnabled) mobileControls.classList.remove('hidden');
 
+  audioManager.setEngineMuted(true);
+
   countdownTimer = 3;
   const countdownText = document.getElementById('countdownText');
   countdownText.textContent = countdownTimer;
+  audioManager.playBeep(440, 'short');
 
   let countInterval = setInterval(() => {
     countdownTimer--;
     if (countdownTimer > 0) {
       countdownText.textContent = countdownTimer;
+      audioManager.playBeep(440, 'short');
     } else if (countdownTimer === 0) {
       countdownText.textContent = "GO!";
+      audioManager.playBeep(880, 'long');
     } else {
       clearInterval(countInterval);
       countdownMenu.classList.add('hidden');
       gameState = STATE.PLAYING;
       lastTime = performance.now();
+      audioManager.setEngineMuted(false);
     }
   }, 1000);
 }
@@ -620,6 +733,7 @@ function resumeGame() {
 
 function endGame() {
   gameState = STATE.GAMEOVER;
+  audioManager.setEngineMuted(true);
   // Don't suspend audio immediately - let music continue during game over screen
   // audioManager.suspend();
   uiLayer.classList.add('hidden');
@@ -627,19 +741,71 @@ function endGame() {
 
   // Save leaderboard records
   cars.forEach((car, i) => {
-    if (car.bestLapTime < Infinity) {
+    if (car.bestLapTime < Infinity && !car.isGhost && !car.isAI) {
       saveLeaderboardRecord(tracks[currentTrackIndex].id, car.bestLapTime, `Player ${i + 1}`);
     }
   });
 
   const winnerText = document.getElementById('winnerText');
-  if (cars.length === 1) {
-    winnerText.textContent = "RACE OVER";
-  } else if (cars.length > 1) {
-    // Find the winner - first player to finish or best lap time
-    const winnerCar = cars.find(c => c.finished) || cars.reduce((best, c) =>
-      c.bestLapTime < best.bestLapTime ? c : best, cars[0]);
-    winnerText.textContent = `PLAYER ${winnerCar.playerIndex + 1} WINS!`;
+  const campaignResultText = document.getElementById('campaignResultText');
+  const quickRaceActions = document.getElementById('quickRaceActions');
+  const campaignActions = document.getElementById('campaignActions');
+
+  let p1Car = cars.find(c => c.playerIndex === 0 && !c.isGhost && !c.isAI);
+
+  if (currentGameMode === GAMEMODE.CAMPAIGN) {
+    const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+    let challengePassed = true;
+    
+    // Evaluate logic based on challenge setup
+    let playerPos = 1;
+    cars.forEach(c => {
+      if (c !== p1Car && !c.isGhost && c.finished && (c.finishTime < p1Car.finishTime || !p1Car.finished)) playerPos++;
+    });
+
+    if (level.targetDriftScore && p1Car.score < level.targetDriftScore) challengePassed = false;
+    if (level.targetTime && totalRaceTime > level.targetTime) challengePassed = false;
+    if (level.ai && level.ai.length > 0 && playerPos > 1) challengePassed = false; // Requires 1st place if there are AI
+    if (!p1Car.finished) challengePassed = false; // Must finish
+
+    if (challengePassed) {
+      if (campaignResultText) {
+        campaignResultText.textContent = 'Challenge Complete!';
+        campaignResultText.style.color = '#00ffcc';
+        campaignResultText.style.textShadow = '0 0 10px #00ffcc';
+      }
+      unlockCampaignLevel(currentCampaignLevelIndex + 1);
+      const nBtn = document.getElementById('nextLevelBtn');
+      if (nBtn) nBtn.style.display = (currentCampaignLevelIndex < CAMPAIGN_LEVELS.length - 1) ? 'inline-block' : 'none';
+    } else {
+      if (campaignResultText) {
+        campaignResultText.textContent = 'Challenge Failed!';
+        campaignResultText.style.color = '#ff3366';
+        campaignResultText.style.textShadow = '0 0 10px #ff3366';
+      }
+      const nBtn = document.getElementById('nextLevelBtn');
+      if (nBtn) nBtn.style.display = 'none';
+    }
+    
+    if (campaignResultText) campaignResultText.classList.remove('hidden');
+    if (quickRaceActions) quickRaceActions.classList.add('hidden');
+    if (campaignActions) campaignActions.classList.remove('hidden');
+    
+    winnerText.textContent = level.name;
+
+  } else {
+    // Quick Race
+    if (campaignResultText) campaignResultText.classList.add('hidden');
+    if (quickRaceActions) quickRaceActions.classList.remove('hidden');
+    if (campaignActions) campaignActions.classList.add('hidden');
+    
+    if (cars.length === 1) {
+      winnerText.textContent = "RACE OVER";
+    } else if (cars.length > 1) {
+      const winnerCar = cars.find(c => c.finished) || cars.reduce((best, c) =>
+        c.bestLapTime < best.bestLapTime ? c : best, cars[0]);
+      winnerText.textContent = `PLAYER ${winnerCar.playerIndex + 1} WINS!`;
+    }
   }
 
   cars.forEach((car, i) => {
@@ -666,6 +832,7 @@ function quitToMenu() {
   joinedPlayers = [];
   uiLayer.classList.add('hidden');
   mobileControls.classList.add('hidden');
+  audioManager.setEngineMuted(true);
   audioManager.suspend();
   showMainMenu();
 }
@@ -679,6 +846,7 @@ splashScreen.addEventListener('click', skipSplash);
 
 // Main menu buttons
 startBtn.addEventListener('click', () => {
+  currentGameMode = GAMEMODE.QUICKRACE;
   if (selectedPlayerCount === 1) {
     joinedPlayers = [];
     startGame();
@@ -686,6 +854,8 @@ startBtn.addEventListener('click', () => {
     showLobby();
   }
 });
+campaignBtn.addEventListener('click', showCampaignMenu);
+campaignBackBtn.addEventListener('click', showMainMenu);
 settingsBtn.addEventListener('click', showSettings);
 leaderboardBtn.addEventListener('click', showLeaderboard);
 
@@ -700,6 +870,22 @@ quitBtn.addEventListener('click', quitToMenu);
 // Game over buttons
 restartBtn.addEventListener('click', startGame);
 menuBtn.addEventListener('click', quitToMenu);
+
+const nextLevelBtn = document.getElementById('nextLevelBtn');
+if(nextLevelBtn) nextLevelBtn.addEventListener('click', () => {
+  currentCampaignLevelIndex++;
+  const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+  currentTrackIndex = level.trackIndex;
+  maxLaps = level.laps;
+  startGame();
+});
+const retryLevelBtn = document.getElementById('retryLevelBtn');
+if(retryLevelBtn) retryLevelBtn.addEventListener('click', startGame);
+const campaignMenuBtn = document.getElementById('campaignMenuBtn');
+if(campaignMenuBtn) campaignMenuBtn.addEventListener('click', () => {
+  quitToMenu();
+  showCampaignMenu();
+});
 
 // Keyboard events
 window.addEventListener('keydown', (e) => {
@@ -1021,6 +1207,7 @@ function updateHUD(car) {
         ui.lapValue.textContent = car.currentLap;
       } else {
         // Mark this player as finished
+        car.bankPendingScore(); // Cash in any active drift combo
         car.finished = true;
         car.finishTime = totalRaceTime;
         ui.lapValue.textContent = maxLaps;
@@ -1040,6 +1227,15 @@ function updateHUD(car) {
     }
   }
 
+  // Update score display with pending score and multiplier
+  if (car.pendingDriftScore > 0) {
+    let pendingStr = Math.floor(car.pendingDriftScore);
+    let multStr = car.comboMultiplier > 1 ? ` x${car.comboMultiplier}` : '';
+    ui.score.innerHTML = `${car.score || 0} <span style="color: #ff3366; font-size: 0.9em;">+${pendingStr}${multStr}</span>`;
+  } else {
+    ui.score.textContent = car.score || 0;
+  }
+
   if (car.isBoosting) {
     car.boostParticleTimer = (car.boostParticleTimer || 0) + lastDt;
     while (car.boostParticleTimer > 0.016) {
@@ -1049,17 +1245,19 @@ function updateHUD(car) {
       particles.emit(backX, backY, 20, car.heading + Math.PI + (Math.random() - 0.5) * 0.2, car.color, 12, 0.4);
     }
   } else if (car.isDrifting) {
-    car.exactScore = (car.exactScore || car.score) + 100 * lastDt;
-    car.score = Math.floor(car.exactScore);
-    ui.score.textContent = car.score;
-
     if (speed > 100) {
       car.driftParticleTimer = (car.driftParticleTimer || 0) + lastDt;
       while (car.driftParticleTimer > 0.032) {
         car.driftParticleTimer -= 0.032;
         const backX = car.x - Math.cos(car.heading) * 10;
         const backY = car.y - Math.sin(car.heading) * 10;
-        particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), 'rgb(200, 200, 200)', 8, 1);
+        
+        let particleColor = 'rgb(200, 200, 200)';
+        
+        // Increase particle size slightly based on multiplier (cap it)
+        const particleSize = 8 + Math.min(car.comboMultiplier - 1, 3) * 2;
+        
+        particles.emit(backX, backY, 10, car.heading + Math.PI + (Math.random() - 0.5), particleColor, particleSize, 1);
       }
     }
   }
@@ -1093,6 +1291,7 @@ function update(dt) {
     }
 
     const trackInfo = track.getPointInfo(car.x, car.y);
+    trackInfo.splinePoints = track.splinePoints;
     car.update(dt, input, trackInfo);
     updateHUD(car);
 
