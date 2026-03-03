@@ -6,6 +6,7 @@ import { ParticleSystem } from './ParticleSystem.js';
 import { AudioManager } from './AudioManager.js';
 import { GamepadManager } from './GamepadManager.js';
 import { GhostRecorder, GhostPlayer } from './GhostRecorder.js';
+import { MenuNavigation } from './MenuNavigation.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -13,6 +14,7 @@ const ctx = canvas.getContext('2d');
 const input = new InputManager();
 const gamepadManager = new GamepadManager();
 input.gamepadManager = gamepadManager;
+const menuNav = new MenuNavigation(gamepadManager);
 
 let track = null; // Will be created when game starts
 const particles = new ParticleSystem();
@@ -264,6 +266,8 @@ function hideAllMenus() {
 function showMenu(menu) {
   hideAllMenus();
   menu.classList.remove('hidden');
+  menuNav.setActiveMenu(menu);
+  menuNav.setEnabled(true);
 }
 
 // ============================================
@@ -380,6 +384,7 @@ function showCampaignMenu() {
         
         const card = document.createElement('div');
         card.className = `level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${isBoss ? 'boss-level' : ''}`;
+        card.tabIndex = isLocked ? -1 : 0;
         
         card.innerHTML = `
           ${isCompleted ? '<div class="completion-stamp">COMPLETED</div>' : ''}
@@ -838,6 +843,8 @@ function startGame() {
       onboardingTitle.textContent = level.onboarding.title;
       onboardingText.textContent = level.onboarding.text;
       onboardingScreen.classList.remove('hidden');
+      menuNav.setActiveMenu(onboardingScreen);
+      menuNav.setEnabled(true);
       uiLayer.classList.remove('hidden'); // Keep UI visible behind it if desired
       audioManager.setEngineMuted(true);
       return; // Wait for continue button
@@ -851,6 +858,7 @@ function startCountdown() {
   gameState = STATE.COUNTDOWN;
   hideAllMenus();
   countdownMenu.classList.remove('hidden');
+  menuNav.setEnabled(false); // Disable menu navigation while racing/countdown
   uiLayer.classList.remove('hidden');
   if (touchEnabled) mobileControls.classList.remove('hidden');
 
@@ -902,6 +910,7 @@ function resumeGame() {
   gameState = previousState;
   audioManager.resume();
   hideAllMenus();
+  menuNav.setEnabled(false);
   lastTime = performance.now();
 }
 
@@ -1021,6 +1030,22 @@ function quitToMenu() {
 
 // Splash screen
 splashScreen.addEventListener('click', skipSplash);
+splashScreen.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  skipSplash();
+});
+document.addEventListener('keydown', (e) => {
+  if (gameState === STATE.SPLASH || gameState === STATE.STUDIO_SPLASH) {
+    if (gameState === STATE.STUDIO_SPLASH) {
+       const prompt = document.getElementById('studioPlayPrompt');
+       if (prompt) prompt.remove();
+       showSplash();
+       if (studioVideo && !studioVideo.paused) studioVideo.pause();
+    } else {
+       skipSplash();
+    }
+  }
+});
 
 // Main menu buttons
 startBtn.addEventListener('click', () => {
@@ -1068,12 +1093,6 @@ if(campaignMenuBtn) campaignMenuBtn.addEventListener('click', () => {
 
 // Keyboard events
 window.addEventListener('keydown', (e) => {
-  // Skip splash on any key
-  if (gameState === STATE.SPLASH) {
-    skipSplash();
-    return;
-  }
-
   // Lobby join
   if (gameState === STATE.LOBBY) {
     if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'].includes(e.code)) {
@@ -1806,6 +1825,30 @@ function draw() {
 function gameLoop(timestamp) {
   const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
+
+  // Global gamepad polling for initial splash screens or menu nav
+  if (gameState !== STATE.PLAYING && gameState !== STATE.FINISHING) {
+      menuNav.update(dt);
+      
+      // Allow any gamepad button to skip splash screens
+      if (gameState === STATE.STUDIO_SPLASH || gameState === STATE.SPLASH) {
+        gamepadManager.poll();
+        for(let i=0; i<4; i++) {
+           const gp = gamepadManager.getGamepad(i);
+           if (gp && gp.buttons.some(b => b.pressed)) {
+               if (gameState === STATE.STUDIO_SPLASH) {
+                  const prompt = document.getElementById('studioPlayPrompt');
+                  if (prompt) prompt.remove();
+                  showSplash();
+                  if (studioVideo && !studioVideo.paused) studioVideo.pause();
+               } else {
+                  skipSplash();
+               }
+               break; // Ensure we only trigger once per frame
+           }
+        }
+      }
+  }
 
   update(dt);
   draw();

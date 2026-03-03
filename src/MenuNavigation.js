@@ -79,9 +79,10 @@ export class MenuNavigation {
     if (!this.activeMenu) return;
 
     // Find all visible focusable elements within the active menu
-    const query = 'button, input[type="range"], input[type="checkbox"], a';
+    const query = 'button, input[type="range"], input[type="checkbox"], a, .level-card';
     const elements = Array.from(this.activeMenu.querySelectorAll(query))
                          .filter(el => {
+                            if (el.disabled || el.classList.contains('locked')) return false;
                             // Elements must be visible
                             const style = window.getComputedStyle(el);
                             return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;

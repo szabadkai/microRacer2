@@ -386,7 +386,8 @@ body::after {
 }
 
 .start-btn:hover,
-.start-btn:focus-visible {
+.start-btn:focus-visible,
+.start-btn:focus {
   outline: none;
   background: linear-gradient(180deg, #00ffaa 0%, var(--success-color) 100%);
   box-shadow:
@@ -420,7 +421,8 @@ body::after {
 }
 
 .secondary-btn:hover,
-.secondary-btn:focus-visible {
+.secondary-btn:focus-visible,
+.secondary-btn:focus {
   outline: none;
   background: rgba(0, 255, 204, 0.1);
   border-color: var(--secondary-accent);
@@ -440,7 +442,8 @@ body::after {
 }
 
 .danger-btn:hover,
-.danger-btn:focus-visible {
+.danger-btn:focus-visible,
+.danger-btn:focus {
   outline: none;
   background: rgba(255, 68, 102, 0.1);
   border-color: #ff6688;
@@ -488,7 +491,8 @@ body::after {
 }
 
 .player-btn:hover,
-.player-btn:focus-visible {
+.player-btn:focus-visible,
+.player-btn:focus {
   outline: none;
   border-color: var(--primary-accent);
   color: var(--primary-accent);
@@ -520,7 +524,8 @@ body::after {
 }
 
 .nav-btn:hover,
-.nav-btn:focus-visible {
+.nav-btn:focus-visible,
+.nav-btn:focus {
   outline: none;
   background: rgba(0, 255, 204, 0.1);
   color: var(--secondary-accent);
@@ -758,7 +763,8 @@ body::after {
   transition: all 0.2s ease;
 }
 
-.toggle:focus-visible {
+.toggle:focus-visible,
+.toggle:focus {
   outline: none;
   border-color: var(--secondary-accent);
   box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
@@ -1384,12 +1390,16 @@ body::after {
   background: rgba(255, 51, 102, 0.05);
 }
 
-.level-card.boss-level:hover:not(.locked) {
+.level-card.boss-level:hover:not(.locked),
+.level-card.boss-level:focus-visible:not(.locked),
+.level-card.boss-level:focus:not(.locked) {
   border-color: #ff3366;
   box-shadow: 0 0 20px rgba(255, 51, 102, 0.6);
 }
 
-.level-card:hover:not(.locked) {
+.level-card:hover:not(.locked),
+.level-card:focus-visible:not(.locked),
+.level-card:focus:not(.locked) {
   border-color: #00ffcc;
   box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
   transform: translateY(-2px);
@@ -1629,24 +1639,27 @@ body::after {
 
 /* Level Cards hover */
 .level-card:hover:not(.locked),
-.level-card:focus-visible:not(.locked) {
-  outline: none;
+.level-card:focus-visible:not(.locked),
+.level-card:focus:not(.locked) {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5), 0 0 15px var(--primary-accent), inset 0 0 20px rgba(0, 255, 204, 0.2);
   border-color: var(--primary-accent);
-  box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
-  transform: translateY(-5px);
 }
 
 /* Range sliders focus */
-input[type="range"]:focus-visible {
+input[type="range"]:focus-visible,
+input[type="range"]:focus {
   outline: none;
 }
 
-input[type="range"]:focus-visible::-webkit-slider-thumb {
+input[type="range"]:focus-visible::-webkit-slider-thumb,
+input[type="range"]:focus::-webkit-slider-thumb {
   box-shadow: 0 0 15px var(--secondary-accent);
   border: 2px solid var(--secondary-accent);
 }
 
-input[type="range"]:focus-visible::-moz-range-thumb {
+input[type="range"]:focus-visible::-moz-range-thumb,
+input[type="range"]:focus::-moz-range-thumb {
   box-shadow: 0 0 15px var(--secondary-accent);
   border: 2px solid var(--secondary-accent);
 }
