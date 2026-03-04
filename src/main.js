@@ -939,12 +939,34 @@ function startGame() {
     document.getElementById('hud-p3').style.display = 'none';
     document.getElementById('hud-p4').style.display = 'none';
     document.getElementById('campaign-hud').classList.remove('hidden');
+    uiLayer.classList.remove('split-3-4');
+    
+    // Reset sizes
+    uiP1.boostBar.parentElement.style.width = '300px';
+    uiP1.boostBar.parentElement.style.bottom = '20px';
   } else {
     document.getElementById('campaign-hud').classList.add('hidden');
     document.getElementById('hud-p1').style.display = cars.length > 0 ? 'block' : 'none';
     document.getElementById('hud-p2').style.display = cars.length > 1 ? 'block' : 'none';
     document.getElementById('hud-p3').style.display = cars.length > 2 ? 'block' : 'none';
     document.getElementById('hud-p4').style.display = cars.length > 3 ? 'block' : 'none';
+    
+    if (cars.length > 2) {
+      uiLayer.classList.add('split-3-4');
+      // Override p1/p2 boost containers directly via JS because CSS specificity isn't overriding fixed positioned containers well enough
+      uiP1.boostBar.parentElement.style.bottom = 'calc(50% + 20px)';
+      uiP1.boostBar.parentElement.style.width = '200px';
+      
+      uiP2.boostBar.parentElement.style.bottom = 'calc(50% + 20px)';
+      uiP2.boostBar.parentElement.style.width = '200px';
+    } else {
+      uiLayer.classList.remove('split-3-4');
+      uiP1.boostBar.parentElement.style.width = '300px';
+      uiP1.boostBar.parentElement.style.bottom = '20px';
+      
+      uiP2.boostBar.parentElement.style.width = '300px';
+      uiP2.boostBar.parentElement.style.bottom = '20px';
+    }
   }
 
   if (currentGameMode === GAMEMODE.CAMPAIGN) {
