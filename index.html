@@ -103,6 +103,16 @@
     <p class="click-prompt">Click or press any key to start</p>
   </div>
 
+  <!-- Player Profile Screen -->
+  <div id="profileScreen" class="menu-screen hidden">
+    <div class="menu-container" style="max-width: 500px;">
+      <h1 style="margin-bottom: 30px;">Who is driving?</h1>
+      <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="15"
+        style="width: 100%; padding: 15px; font-size: 1.2rem; background: rgba(0,0,0,0.6); border: 2px solid #00ffcc; color: white; border-radius: 8px; margin-bottom: 20px; font-family: 'Press Start 2P', monospace; text-align: center;">
+      <button class="start-btn" id="saveProfileBtn">Let's Race!</button>
+    </div>
+  </div>
+
   <!-- Main Menu -->
   <div id="mainMenu" class="menu-screen hidden">
     <div class="menu-container">
@@ -164,6 +174,11 @@
       <h2>Settings</h2>
       <div class="settings-list">
         <div class="settings-item">
+          <label for="settingsPlayerName">Driver Name</label>
+          <input type="text" id="settingsPlayerName" maxlength="15"
+            style="padding: 5px 10px; font-size: 0.9rem; background: rgba(0,0,0,0.6); border: 1px solid #00ffcc; color: white; border-radius: 4px; font-family: 'Press Start 2P', monospace; width: 150px; text-align: right;">
+        </div>
+        <div class="settings-item">
           <label for="ghostToggleSettings">👻 Ghost (fastest lap)</label>
           <label class="toggle-switch">
             <input type="checkbox" id="ghostToggleSettings" checked>
@@ -183,7 +198,8 @@
         </div>
         <div class="settings-item">
           <label>🎓 Tutorials</label>
-          <button class="secondary-btn" id="resetTutorialsBtn" style="padding: 5px 15px; font-size: 0.9rem;">Reset</button>
+          <button class="secondary-btn" id="resetTutorialsBtn"
+            style="padding: 5px 15px; font-size: 0.9rem;">Reset</button>
         </div>
       </div>
       <button class="secondary-btn" id="settingsBackBtn">Back</button>
