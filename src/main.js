@@ -959,6 +959,7 @@ function pauseGame() {
   previousState = gameState;
   gameState = STATE.PAUSED;
   audioManager.suspend();
+  mobileControls.classList.add('hidden');
   showMenu(pauseMenu);
 }
 
@@ -967,6 +968,7 @@ function resumeGame() {
   gameState = previousState;
   audioManager.resume();
   hideAllMenus();
+  if (touchEnabled) mobileControls.classList.remove('hidden');
   menuNav.setEnabled(false);
   lastTime = performance.now();
 }
