@@ -481,7 +481,7 @@ function getPlayerControls(playerIndex) {
     case 2:
       return { keys: { up: 'KeyI', down: 'KeyK', left: 'KeyJ', right: 'KeyL', boost: 'KeyU' }, display: 'I J K L', boostDisplay: 'U' };
     case 3:
-      return { keys: { up: 'Numpad8', down: 'Numpad5', left: 'Numpad4', right: 'Numpad6', boost: 'Numpad0' }, display: 'Numpad 8456', boostDisplay: 'Numpad 0' };
+      return { keys: { up: ['Numpad8', 'Digit8'], down: ['Numpad5', 'Digit5'], left: ['Numpad4', 'Digit4'], right: ['Numpad6', 'Digit6'], boost: ['Numpad0', 'Digit0', 'NumpadEnter'] }, display: 'Numpad 8456', boostDisplay: 'Num 0' };
     default:
       return { keys: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'ShiftRight' }, display: '↑ ↓ ← →', boostDisplay: '⇧ Shift' };
   }
@@ -684,10 +684,10 @@ function updateLobbyUI() {
       let inputType = 'Keyboard';
       if (player.gamepadIndex !== null) {
         inputType = `Gamepad ${player.gamepadIndex + 1}`;
-      } else if (player.controls === 'wasd') {
-        inputType = 'WASD';
       } else if (player.controls === 'arrows') {
         inputType = 'Arrows';
+      } else if (player.controls === 'wasd') {
+        inputType = 'WASD';
       } else if (player.controls === 'ijkl') {
         inputType = 'IJKL';
       } else if (player.controls === 'numpad') {
@@ -1156,10 +1156,10 @@ window.addEventListener('keydown', (e) => {
       tryJoinPlayer('wasd');
     } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftRight', 'ShiftLeft'].includes(e.code)) {
       tryJoinPlayer('arrows');
+    } else if (['Numpad8', 'Numpad5', 'Numpad4', 'Numpad6', 'Numpad0', 'Digit8', 'Digit5', 'Digit4', 'Digit6', 'Digit0', 'NumpadEnter'].includes(e.code)) {
+      tryJoinPlayer('numpad');
     } else if (['KeyI', 'KeyJ', 'KeyK', 'KeyL', 'KeyU'].includes(e.code)) {
       tryJoinPlayer('ijkl');
-    } else if (['Numpad8', 'Numpad5', 'Numpad4', 'Numpad6', 'Numpad0'].includes(e.code)) {
-      tryJoinPlayer('numpad');
     }
     return;
   }

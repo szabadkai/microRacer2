@@ -12,6 +12,9 @@ export class InputManager {
   }
 
   isDown(code) {
+    if (Array.isArray(code)) {
+      return code.some(c => this.keys[c] === true);
+    }
     return this.keys[code] === true;
   }
 }
