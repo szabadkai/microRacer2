@@ -1976,7 +1976,7 @@ function draw() {
 }
 
 function gameLoop(timestamp) {
-  const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+  const dt = Math.max(0, Math.min((timestamp - lastTime) / 1000, 0.1));
   lastTime = timestamp;
 
   // Global gamepad pause check
