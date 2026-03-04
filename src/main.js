@@ -117,6 +117,7 @@ function unlockCampaignLevel(levelIndex) {
 
 let gameState = STATE.STUDIO_SPLASH;
 let countdownTimer = 3;
+let seenTutorials = JSON.parse(localStorage.getItem('microRacer2_tutorials')) || {};
 
 // ============================================
 // TRACK DATA
@@ -548,6 +549,18 @@ document.getElementById('ghostToggleSettings').addEventListener('change', (e) =>
   }
 });
 
+// Settings tutorials reset
+document.getElementById('resetTutorialsBtn').addEventListener('click', (e) => {
+  seenTutorials = {};
+  localStorage.removeItem('microRacer2_tutorials');
+  const btn = e.target;
+  const originalText = btn.textContent;
+  btn.textContent = 'Reset!';
+  setTimeout(() => {
+    btn.textContent = originalText;
+  }, 1500);
+});
+
 // Settings volume sliders
 document.getElementById('musicVolumeSettings').addEventListener('input', (e) => {
   musicVolume = parseFloat(e.target.value);
@@ -894,7 +907,7 @@ function startGame() {
 
   if (currentGameMode === GAMEMODE.CAMPAIGN) {
     const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
-    if (level.onboarding) {
+    if (level.onboarding && !seenTutorials[level.id]) {
       gameState = STATE.ONBOARDING;
       hideAllMenus();
       onboardingTitle.textContent = level.onboarding.title;
@@ -947,6 +960,11 @@ function startCountdown() {
 // Onboarding logic
 onboardingContinueBtn.addEventListener('click', () => {
   if (gameState === STATE.ONBOARDING) {
+    if (currentGameMode === GAMEMODE.CAMPAIGN) {
+      const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+      seenTutorials[level.id] = true;
+      localStorage.setItem('microRacer2_tutorials', JSON.stringify(seenTutorials));
+    }
     onboardingScreen.classList.add('hidden');
     startCountdown();
   }
