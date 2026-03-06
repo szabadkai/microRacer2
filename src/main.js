@@ -68,7 +68,8 @@ let garagePreviewTime = 0;
 let lastTime = 0;
 let lastDt = 0;
 let totalRaceTime = 0;
-let maxLaps = 3;
+const QUICK_RACE_LAP_COUNT = 3;
+let maxLaps = QUICK_RACE_LAP_COUNT;
 
 // ============================================
 // GAME STATE
@@ -970,10 +971,10 @@ function showLeaderboard() {
 
 function loadLeaderboard() {
   const trackId = tracks[currentTrackIndex].id;
-  const records = getSavedLeaderboardRecords(saveData, trackId);
+  const records = getSavedLeaderboardRecords(saveData, trackId, QUICK_RACE_LAP_COUNT);
 
   if (records.length === 0) {
-    leaderboardList.innerHTML = '<li class="leaderboard-empty">No records yet. Complete a race!</li>';
+    leaderboardList.innerHTML = `<li class="leaderboard-empty">No ${QUICK_RACE_LAP_COUNT}-lap records yet. Complete a race!</li>`;
     return;
   }
 
@@ -999,6 +1000,48 @@ function formatTime(seconds) {
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 100);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+}
+
+function saveCompletedQuickRaceGhostRun(car, recorder) {
+  if (
+    currentGameMode !== GAMEMODE.QUICKRACE
+    || cars.length !== 1
+    || car.isAI
+    || !recorder
+  ) {
+    return;
+  }
+
+  const completedRun = recorder.completeRun(car.finishTime || totalRaceTime);
+  if (!completedRun.isValidRun) {
+    return;
+  }
+
+  const trackId = tracks[currentTrackIndex].id;
+  const carId = car.carId || 'starter';
+  const ghostSaved = saveGhost(
+    saveData,
+    trackId,
+    carId,
+    completedRun.totalTime,
+    completedRun.frames,
+    completedRun.lapCount
+  );
+
+  if (!ghostSaved) {
+    return;
+  }
+
+  saveSavedLeaderboardRecord(
+    saveData,
+    trackId,
+    completedRun.totalTime,
+    car.score || 0,
+    getPlayerName(),
+    carId,
+    completedRun.lapCount
+  );
+  saveAllProgress();
 }
 
 leaderboardBackBtn.addEventListener('click', showMainMenu);
@@ -1127,7 +1170,7 @@ function startGame() {
 
   if (currentGameMode === GAMEMODE.QUICKRACE) {
     // Keep maxLaps default or read from settings if we add them later
-    maxLaps = 3;
+    maxLaps = QUICK_RACE_LAP_COUNT;
   } else if (currentGameMode === GAMEMODE.CAMPAIGN) {
     const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
     if (level.isElimination) {
@@ -1238,13 +1281,18 @@ function startGame() {
     car.finishTime = null;
 
     cars.push(car);
-    ghostRecorders.push(new GhostRecorder());
+    ghostRecorders.push(new GhostRecorder(maxLaps));
     ghostPlayers.push(null);
   });
 
   if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1) {
     const humanCar = cars[0];
-    const savedGhost = getTrackBestGhost(saveData, tracks[currentTrackIndex].id, humanCar.carId || 'starter');
+    const savedGhost = getTrackBestGhost(
+      saveData,
+      tracks[currentTrackIndex].id,
+      humanCar.carId || 'starter',
+      maxLaps
+    );
     if (savedGhost && ghostsEnabled) {
       ghostPlayers[0] = new GhostPlayer(
         savedGhost.frames,
@@ -2020,55 +2068,18 @@ function updateHUD(car) {
   if (car.targetSector === 4 && progressRatio < lapStart) {
     if (car.currentLapTime > 2.0) {
       const recorder = ghostRecorders[car.playerIndex];
-      const isNewBest = recorder && recorder.onLapComplete(car.currentLapTime);
-
-      if (isNewBest) {
-        if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1 && !car.isAI) {
-          const currentTrackBestGhost = getTrackBestGhost(
-            saveData,
-            tracks[currentTrackIndex].id,
-            car.carId || 'starter'
-          );
-          const currentTrackBestTime = currentTrackBestGhost?.bestLapTime ?? Infinity;
-          const sessionGhost = new GhostPlayer(recorder.bestFrames, car.color);
-          const ghostSaved = saveGhost(
-            saveData,
-            tracks[currentTrackIndex].id,
-            car.carId || 'starter',
-            car.currentLapTime,
-            recorder.bestFrames
-          );
-          const isTrackBestGhost = car.currentLapTime <= currentTrackBestTime;
-          if (isTrackBestGhost || !ghostPlayers[car.playerIndex]) {
-            ghostPlayers[car.playerIndex] = sessionGhost;
-          } else if (ghostPlayers[car.playerIndex]) {
-            ghostPlayers[car.playerIndex].restart();
-          }
-          if (ghostSaved) {
-            saveSavedLeaderboardRecord(
-              saveData,
-              tracks[currentTrackIndex].id,
-              car.currentLapTime,
-              car.score || 0,
-              getPlayerName(),
-              car.carId || 'starter'
-            );
-            saveAllProgress();
-          }
-        } else {
-          ghostPlayers[car.playerIndex] = new GhostPlayer(recorder.bestFrames, car.color);
-        }
-      } else if (ghostPlayers[car.playerIndex]) {
-        ghostPlayers[car.playerIndex].restart();
-      }
+      const lapResult = recorder
+        ? recorder.onLapComplete(car.currentLapTime)
+        : { lapCount: car.currentLap, isFirstLap: car.currentLap === 1 };
+      const completedLapCount = lapResult?.lapCount ?? car.currentLap;
 
       if (car.currentLapTime < car.bestLapTime) {
         car.bestLapTime = car.currentLapTime;
         ui.bestLapValue.textContent = car.bestLapTime.toFixed(2);
       }
 
-      car.currentLap++;
-      if (car.currentLap <= maxLaps) {
+      car.currentLap = completedLapCount + 1;
+      if (completedLapCount < maxLaps) {
         ui.lapValue.textContent = car.currentLap;
       } else {
         // Mark this player as finished
@@ -2076,6 +2087,7 @@ function updateHUD(car) {
         car.finished = true;
         car.finishTime = totalRaceTime;
         ui.lapValue.textContent = maxLaps;
+        saveCompletedQuickRaceGhostRun(car, recorder);
 
         // Check if all human players have finished
         const humanCars = cars.filter(c => !c.isAI);

@@ -1,16 +1,15 @@
 // ---- GhostRecorder ----------------------------------------------------------
-// Records a car's state every frame. When a lap completes, if it's the best
-// lap, the recording is saved so GhostPlayer can replay it.
+// Records a car's state for an entire run and keeps track of completed laps so
+// callers can distinguish the first crossing from a finished race.
 
 export class GhostRecorder {
-  constructor() {
-    this.currentFrames = [];
-    this.bestFrames = null;
-    this.bestLapTime = Infinity;
+  constructor(targetLapCount = 3) {
+    this.targetLapCount = targetLapCount;
+    this.reset(targetLapCount);
   }
 
   recordFrame(car, dt) {
-    this.currentFrames.push({
+    this.currentRunFrames.push({
       x: car.x,
       y: car.y,
       heading: car.heading,
@@ -21,21 +20,29 @@ export class GhostRecorder {
   }
 
   onLapComplete(lapTime) {
-    const frames = this.currentFrames.slice();
-    this.currentFrames = [];
-
-    if (this.bestFrames === null || lapTime < this.bestLapTime) {
-      this.bestFrames = frames;
-      this.bestLapTime = lapTime;
-      return true;
-    }
-    return false;
+    this.completedLapTimes.push(lapTime);
+    return {
+      lapCount: this.completedLapTimes.length,
+      isFirstLap: this.completedLapTimes.length === 1,
+      lapTime
+    };
   }
 
-  reset() {
-    this.currentFrames = [];
-    this.bestFrames = null;
-    this.bestLapTime = Infinity;
+  completeRun(totalTime) {
+    return {
+      totalTime,
+      lapCount: this.completedLapTimes.length,
+      frames: this.currentRunFrames.slice(),
+      isValidRun: Number.isFinite(totalTime)
+        && this.currentRunFrames.length > 0
+        && this.completedLapTimes.length === this.targetLapCount
+    };
+  }
+
+  reset(targetLapCount = this.targetLapCount) {
+    this.targetLapCount = targetLapCount;
+    this.currentRunFrames = [];
+    this.completedLapTimes = [];
   }
 }
 

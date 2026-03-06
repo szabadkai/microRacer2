@@ -20,6 +20,8 @@ import {
 
 export const SAVE_KEY = 'microRacer2_save_v1';
 export const SAVE_VERSION = 1;
+const LEGACY_LAP_COUNT = 1;
+const DEFAULT_GHOST_LAP_COUNT = 3;
 
 const LEGACY_KEYS = {
   playerName: 'playerName',
@@ -164,7 +166,8 @@ export function migrateLegacy(trackIds = [], campaignLevels = []) {
               score: record.score || 0,
               playerName: record.playerName || save.profile.playerName || 'Player',
               carId: record.carId || 'starter',
-              date: record.date || Date.now()
+              date: record.date || Date.now(),
+              lapCount: LEGACY_LAP_COUNT
             }))
           : [];
       } catch (error) {
@@ -254,7 +257,8 @@ export function normalizeSave(save, trackIds = [], campaignLevels = []) {
     Object.entries(source).forEach(([carId, ghost]) => {
       if (!CAR_DEFS[carId] || !isPlainObject(ghost) || !Array.isArray(ghost.frames)) return;
       normalized.ghosts[trackId][carId] = {
-        bestLapTime: getNumber(ghost.bestLapTime, Infinity),
+        bestRunTime: getGhostBestTime(ghost),
+        lapCount: normalizeGhostLapCount(ghost),
         frames: ghost.frames
           .map((frame) => normalizeGhostFrame(frame))
           .filter(Boolean)
@@ -441,23 +445,32 @@ export function getActiveCampaignGoalText(save, level) {
   return getVisibleGoalText(level, getLevelMastery(save, level.id));
 }
 
-export function getLeaderboardRecords(save, trackId) {
-  return [...(save.records.leaderboards[trackId] || [])].sort((a, b) => a.time - b.time).slice(0, 10);
+export function getLeaderboardRecords(save, trackId, lapCount = null) {
+  const records = save.records.leaderboards[trackId] || [];
+  return records
+    .filter((record) => lapCount === null || record.lapCount === lapCount)
+    .sort((a, b) => a.time - b.time)
+    .slice(0, 10);
 }
 
-export function saveLeaderboardRecord(save, trackId, time, score, playerName, carId) {
+export function saveLeaderboardRecord(save, trackId, time, score, playerName, carId, lapCount = LEGACY_LAP_COUNT) {
   ensureTrackContainers(save, [trackId]);
   const normalizedRecord = normalizeLeaderboardRecord({
     time,
     score,
     playerName,
     carId,
-    date: Date.now()
+    date: Date.now(),
+    lapCount
   }, playerName);
   if (!normalizedRecord) return;
 
   const records = save.records.leaderboards[trackId].filter((record) => (
-    !(record.playerName === normalizedRecord.playerName && record.carId === normalizedRecord.carId)
+    !(
+      record.playerName === normalizedRecord.playerName
+      && record.carId === normalizedRecord.carId
+      && record.lapCount === normalizedRecord.lapCount
+    )
   ));
 
   records.push(normalizedRecord);
@@ -472,15 +485,18 @@ export function clearLeaderboard(save, trackId) {
   save.records.leaderboards[trackId] = [];
 }
 
-export function getSavedGhost(save, trackId, carId) {
+export function getSavedGhost(save, trackId, carId, requiredLapCount = null) {
   const ghost = save?.ghosts?.[trackId]?.[carId];
   if (!ghost || !Array.isArray(ghost.frames) || ghost.frames.length === 0) {
+    return null;
+  }
+  if (requiredLapCount !== null && ghost.lapCount !== requiredLapCount) {
     return null;
   }
   return ghost;
 }
 
-export function getTrackBestGhost(save, trackId, preferredCarId = null) {
+export function getTrackBestGhost(save, trackId, preferredCarId = null, requiredLapCount = null) {
   const trackGhosts = save?.ghosts?.[trackId];
   if (!isPlainObject(trackGhosts)) return null;
 
@@ -488,37 +504,43 @@ export function getTrackBestGhost(save, trackId, preferredCarId = null) {
 
   Object.entries(trackGhosts).forEach(([carId, ghost]) => {
     if (!ghost || !Array.isArray(ghost.frames) || ghost.frames.length === 0) return;
-    if (!Number.isFinite(ghost.bestLapTime)) return;
+    if (requiredLapCount !== null && ghost.lapCount !== requiredLapCount) return;
 
-    if (!bestGhost || ghost.bestLapTime < bestGhost.bestLapTime) {
-      bestGhost = { ...ghost, carId };
+    const ghostBestTime = getGhostBestTime(ghost);
+    if (!Number.isFinite(ghostBestTime)) return;
+
+    if (!bestGhost || ghostBestTime < bestGhost.bestRunTime) {
+      bestGhost = { ...ghost, bestRunTime: ghostBestTime, carId };
       return;
     }
 
     if (
       bestGhost
-      && ghost.bestLapTime === bestGhost.bestLapTime
+      && ghostBestTime === bestGhost.bestRunTime
       && preferredCarId
       && carId === preferredCarId
     ) {
-      bestGhost = { ...ghost, carId };
+      bestGhost = { ...ghost, bestRunTime: ghostBestTime, carId };
     }
   });
 
   return bestGhost;
 }
 
-export function saveGhost(save, trackId, carId, bestLapTime, frames) {
-  if (!Array.isArray(frames) || frames.length === 0) return false;
+export function saveGhost(save, trackId, carId, bestRunTime, frames, lapCount = DEFAULT_GHOST_LAP_COUNT) {
+  if (!Array.isArray(frames) || frames.length === 0 || !Number.isFinite(bestRunTime) || lapCount <= 0) return false;
   ensureTrackContainers(save, [trackId]);
 
   const current = save.ghosts[trackId][carId];
-  if (current && Number.isFinite(current.bestLapTime) && current.bestLapTime <= bestLapTime) {
+  const currentLapCount = current ? normalizeGhostLapCount(current) : 0;
+  const currentBestTime = getGhostBestTime(current);
+  if (current && currentLapCount === lapCount && Number.isFinite(currentBestTime) && currentBestTime <= bestRunTime) {
     return false;
   }
 
   save.ghosts[trackId][carId] = {
-    bestLapTime,
+    bestRunTime,
+    lapCount,
     frames: frames.map((frame) => ({
       x: frame.x,
       y: frame.y,
@@ -691,7 +713,8 @@ function normalizeLeaderboardRecord(record, fallbackName) {
     score: typeof record.score === 'number' ? record.score : 0,
     playerName: record.playerName || fallbackName || 'Player',
     carId: CAR_DEFS[record.carId] ? record.carId : 'starter',
-    date: typeof record.date === 'number' ? record.date : Date.now()
+    date: typeof record.date === 'number' ? record.date : Date.now(),
+    lapCount: normalizeLeaderboardLapCount(record)
   };
 }
 
@@ -725,6 +748,24 @@ function clampUpgradeLevel(value) {
 
 function getNumber(value, fallback) {
   return typeof value === 'number' && !Number.isNaN(value) ? value : fallback;
+}
+
+function normalizeLeaderboardLapCount(record) {
+  const parsed = parseInt(record?.lapCount ?? LEGACY_LAP_COUNT, 10) || LEGACY_LAP_COUNT;
+  return Math.max(1, parsed);
+}
+
+function normalizeGhostLapCount(ghost) {
+  const parsed = parseInt(ghost?.lapCount ?? 0, 10) || 0;
+  if (parsed > 0) return parsed;
+  if (Number.isFinite(ghost?.bestRunTime)) return DEFAULT_GHOST_LAP_COUNT;
+  if (Number.isFinite(ghost?.bestLapTime)) return LEGACY_LAP_COUNT;
+  return 0;
+}
+
+function getGhostBestTime(ghost) {
+  if (!ghost) return Infinity;
+  return getNumber(ghost.bestRunTime, getNumber(ghost.bestLapTime, Infinity));
 }
 
 function isPlainObject(value) {
