@@ -7,6 +7,7 @@ import { AudioManager } from './AudioManager.js';
 import { GamepadManager } from './GamepadManager.js';
 import { GhostRecorder, GhostPlayer } from './GhostRecorder.js';
 import { MenuNavigation } from './MenuNavigation.js';
+import { getGarageShowroomLabel, renderGaragePreviewScene } from './GaragePreview3D.js';
 import { CAR_DEFS, CAR_ORDER, UPGRADE_LANES } from './GarageData.js';
 import { TIER_ORDER, TIER_SHORT_LABELS } from './CampaignGoals.js';
 import {
@@ -20,7 +21,7 @@ import {
   getLeaderboardRecords as getSavedLeaderboardRecords,
   getLevelRewardPreview,
   getRepairQuote,
-  getSavedGhost,
+  getTrackBestGhost,
   getSectionProgress,
   getSelectedCarDef,
   loadSave,
@@ -435,14 +436,10 @@ function updateRewardPanel(reward) {
 }
 
 function setGarageMessage(text, isError = false) {
-  if (!text) {
-    garageLockReason.classList.remove('garage-lock-error');
-    garageLockReason.classList.add('hidden');
-    return;
-  }
-  garageLockReason.textContent = text;
-  garageLockReason.classList.remove('hidden');
-  garageLockReason.classList.toggle('garage-lock-error', isError);
+  const hasText = Boolean(text);
+  garageLockReason.textContent = hasText ? text : '\u00a0';
+  garageLockReason.classList.toggle('garage-lock-reason-empty', !hasText);
+  garageLockReason.classList.toggle('garage-lock-error', hasText && isError);
 }
 
 function setGarageStatBar(element, value, min, max) {
@@ -474,7 +471,7 @@ function renderGarage() {
   garageRepairPatchCost.textContent = repairQuote.patchCost > 0 ? formatCredits(repairQuote.patchCost) : 'NO DAMAGE';
   garageRepairFullCost.textContent = repairQuote.fullCost > 0 ? formatCredits(repairQuote.fullCost) : 'NO DAMAGE';
   if (garagePreviewTag) {
-    garagePreviewTag.textContent = `${carDef.name} rig`;
+    garagePreviewTag.textContent = getGarageShowroomLabel(carId);
   }
   if (garagePreviewConditionTag) {
     garagePreviewConditionTag.textContent = repairQuote.status;
@@ -561,106 +558,15 @@ function renderGaragePreview(dt) {
 
   const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
   const carDef = CAR_DEFS[carId];
-  const spec = buildCarSpec(saveData, carId);
   const repairQuote = getRepairQuote(saveData, carId);
-  const t = garagePreviewTime;
-  const centerX = width * 0.5;
-  const centerY = height * 0.52;
-  const ctx = garagePreviewCtx;
-
-  // Atmosphere glow and stage beams.
-  const backGlow = ctx.createRadialGradient(centerX, height * 0.35, 10, centerX, height * 0.35, height * 0.65);
-  backGlow.addColorStop(0, 'rgba(0, 255, 204, 0.22)');
-  backGlow.addColorStop(0.45, 'rgba(255, 0, 255, 0.10)');
-  backGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = backGlow;
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.save();
-  ctx.translate(centerX, centerY - 68);
-  for (let i = -1; i <= 1; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * 58, -110);
-    ctx.lineTo(i * 16, 110);
-    ctx.strokeStyle = `rgba(0, 255, 204, ${0.06 + (i + 1) * 0.02})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Rotating showroom rings.
-  ctx.save();
-  ctx.translate(centerX, centerY + 40);
-  ctx.rotate(t * 0.22);
-  ctx.strokeStyle = 'rgba(0, 255, 204, 0.38)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 136, 44, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.rotate(-t * 0.48);
-  ctx.strokeStyle = 'rgba(255, 0, 255, 0.22)';
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 168, 58, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.restore();
-
-  // Stage floor glow and shadow.
-  const floorGlow = ctx.createRadialGradient(centerX, centerY + 42, 6, centerX, centerY + 42, 150);
-  floorGlow.addColorStop(0, 'rgba(0, 255, 204, 0.24)');
-  floorGlow.addColorStop(0.45, 'rgba(255, 0, 255, 0.10)');
-  floorGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = floorGlow;
-  ctx.beginPath();
-  ctx.ellipse(centerX, centerY + 42, 146, 62, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 6; i++) {
-    const y = centerY + 20 + i * 12;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 150, y);
-    ctx.lineTo(centerX + 150, y);
-    ctx.stroke();
-  }
-
-  // Preview car itself, using the in-game renderer for visual consistency.
-  const previewCar = new Car(
-    centerX + Math.sin(t * 1.2) * 8,
-    centerY - 2 + Math.sin(t * 2.4) * 4,
-    carDef?.color || '#00ffcc',
-    getPlayerControls(0).keys,
-    spec
-  );
-  previewCar.heading = -0.12 + Math.sin(t * 0.55) * 0.22;
-  previewCar.velocity.x = spec.maxSpeed * (0.28 + 0.06 * Math.sin(t * 0.95));
-  previewCar.velocity.y = Math.cos(t * 1.1) * 16;
-  previewCar.throttle = 1;
-  previewCar.isBoosting = Math.sin(t * 1.7) > 0.84;
-  previewCar.isDrifting = Math.sin(t * 2.2) > 0.72;
-  previewCar.maxSpeed = spec.maxSpeed;
-  previewCar.draw(ctx);
-
-  // Damage-aware sparks and warning pulses for rough cars.
-  if (repairQuote.damage > 45) {
-    const sparkCount = repairQuote.damage > 75 ? 5 : 3;
-    for (let i = 0; i < sparkCount; i++) {
-      const sparkT = t * (2.2 + i * 0.35);
-      const sx = centerX - 24 + Math.sin(sparkT + i) * 26;
-      const sy = centerY + 12 + Math.cos(sparkT * 1.3 + i) * 10;
-      const len = 10 + ((i + 1) % 3) * 4;
-      ctx.strokeStyle = repairQuote.damage > 75 ? 'rgba(255, 90, 40, 0.8)' : 'rgba(255, 204, 0, 0.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(sx + len, sy - len * 0.4);
-      ctx.stroke();
-    }
-  }
-
-  // Front-facing hologram caption line.
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.fillRect(centerX - 120, height - 52, 240, 1);
+  renderGaragePreviewScene(garagePreviewCtx, {
+    width,
+    height,
+    time: garagePreviewTime,
+    carDef,
+    repairQuote,
+    upgrades: saveData?.garage?.upgrades?.[carId] || {}
+  });
 }
 
 // ============================================
@@ -1338,9 +1244,12 @@ function startGame() {
 
   if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1) {
     const humanCar = cars[0];
-    const savedGhost = getSavedGhost(saveData, tracks[currentTrackIndex].id, humanCar.carId || 'starter');
+    const savedGhost = getTrackBestGhost(saveData, tracks[currentTrackIndex].id, humanCar.carId || 'starter');
     if (savedGhost && ghostsEnabled) {
-      ghostPlayers[0] = new GhostPlayer(savedGhost.frames, humanCar.color);
+      ghostPlayers[0] = new GhostPlayer(
+        savedGhost.frames,
+        CAR_DEFS[savedGhost.carId]?.color || humanCar.color
+      );
     }
   }
 
@@ -2114,8 +2023,14 @@ function updateHUD(car) {
       const isNewBest = recorder && recorder.onLapComplete(car.currentLapTime);
 
       if (isNewBest) {
-        ghostPlayers[car.playerIndex] = new GhostPlayer(recorder.bestFrames, car.color);
         if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1 && !car.isAI) {
+          const currentTrackBestGhost = getTrackBestGhost(
+            saveData,
+            tracks[currentTrackIndex].id,
+            car.carId || 'starter'
+          );
+          const currentTrackBestTime = currentTrackBestGhost?.bestLapTime ?? Infinity;
+          const sessionGhost = new GhostPlayer(recorder.bestFrames, car.color);
           const ghostSaved = saveGhost(
             saveData,
             tracks[currentTrackIndex].id,
@@ -2123,6 +2038,12 @@ function updateHUD(car) {
             car.currentLapTime,
             recorder.bestFrames
           );
+          const isTrackBestGhost = car.currentLapTime <= currentTrackBestTime;
+          if (isTrackBestGhost || !ghostPlayers[car.playerIndex]) {
+            ghostPlayers[car.playerIndex] = sessionGhost;
+          } else if (ghostPlayers[car.playerIndex]) {
+            ghostPlayers[car.playerIndex].restart();
+          }
           if (ghostSaved) {
             saveSavedLeaderboardRecord(
               saveData,
@@ -2134,10 +2055,11 @@ function updateHUD(car) {
             );
             saveAllProgress();
           }
+        } else {
+          ghostPlayers[car.playerIndex] = new GhostPlayer(recorder.bestFrames, car.color);
         }
       } else if (ghostPlayers[car.playerIndex]) {
-        ghostPlayers[car.playerIndex].frameIndex = 0;
-        ghostPlayers[car.playerIndex].elapsed = 0;
+        ghostPlayers[car.playerIndex].restart();
       }
 
       if (car.currentLapTime < car.bestLapTime) {

@@ -480,6 +480,34 @@ export function getSavedGhost(save, trackId, carId) {
   return ghost;
 }
 
+export function getTrackBestGhost(save, trackId, preferredCarId = null) {
+  const trackGhosts = save?.ghosts?.[trackId];
+  if (!isPlainObject(trackGhosts)) return null;
+
+  let bestGhost = null;
+
+  Object.entries(trackGhosts).forEach(([carId, ghost]) => {
+    if (!ghost || !Array.isArray(ghost.frames) || ghost.frames.length === 0) return;
+    if (!Number.isFinite(ghost.bestLapTime)) return;
+
+    if (!bestGhost || ghost.bestLapTime < bestGhost.bestLapTime) {
+      bestGhost = { ...ghost, carId };
+      return;
+    }
+
+    if (
+      bestGhost
+      && ghost.bestLapTime === bestGhost.bestLapTime
+      && preferredCarId
+      && carId === preferredCarId
+    ) {
+      bestGhost = { ...ghost, carId };
+    }
+  });
+
+  return bestGhost;
+}
+
 export function saveGhost(save, trackId, carId, bestLapTime, frames) {
   if (!Array.isArray(frames) || frames.length === 0) return false;
   ensureTrackContainers(save, [trackId]);
