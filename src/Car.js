@@ -1,5 +1,11 @@
 export class Car {
-  constructor(x, y, color = '#00ffcc', controls = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'Space' }) {
+  constructor(
+    x,
+    y,
+    color = '#00ffcc',
+    controls = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', boost: 'Space' },
+    spec = {}
+  ) {
     this.x = x;
     this.y = y;
     this.color = color;
@@ -10,14 +16,14 @@ export class Car {
     this.velocity = { x: 0, y: 0 };
 
     // Configurable specs
-    this.acceleration = 600;      // Pixels/s^2
-    this.maxSpeed = 800;          // Pixels/s
-    this.friction = 0.98;         // Forward friction 
-    this.turnSpeed = 3.5;         // Radians/s
-    this.grip = 800;              // How strongly the tires pull velocity toward heading
-    this.driftGrip = 200;         // Grip when sliding
-    this.driftThreshold = 0.4;    // Slip angle (radians) at which traction breaks
-    this.recoveryThreshold = 0.2; // Slip angle at which traction is regained
+    this.acceleration = spec.acceleration ?? 600;      // Pixels/s^2
+    this.maxSpeed = spec.maxSpeed ?? 800;              // Pixels/s
+    this.friction = spec.friction ?? 0.98;             // Forward friction 
+    this.turnSpeed = spec.turnSpeed ?? 3.5;            // Radians/s
+    this.grip = spec.grip ?? 800;                      // How strongly the tires pull velocity toward heading
+    this.driftGrip = spec.driftGrip ?? 200;            // Grip when sliding
+    this.driftThreshold = spec.driftThreshold ?? 0.4;  // Slip angle (radians) at which traction breaks
+    this.recoveryThreshold = spec.recoveryThreshold ?? 0.2; // Slip angle at which traction is regained
 
     // Steering smoothing
     this.smoothedSteering = 0;    // Current smoothed steering value
@@ -39,13 +45,24 @@ export class Car {
 
     // Boost
     this.boostLevel = 0;
-    this.maxBoost = 100;
+    this.maxBoost = spec.maxBoost ?? 100;
+    this.boostChargeRate = spec.boostChargeRate ?? 15;
     this.isBoosting = false;
 
     // Mechanics
     this.isDrafting = false;
     this.draftTime = 0;
     this.hasHitGrass = false;
+    this.wasOnGrass = false;
+    this.damageTaken = 0;
+    this.contactPenalty = 0;
+    this.collisionCount = 0;
+    this.offTrackHits = 0;
+    this.usedBoost = false;
+    this.maxComboMultiplier = 1;
+    this.bestBankScore = 0;
+    this.collisionCooldown = 0;
+    this.grassImpactCooldown = 0;
 
     // AI
     this.isAI = false;
@@ -57,6 +74,8 @@ export class Car {
     if (this.onGrass && !this.isAI) {
       this.hasHitGrass = true;
     }
+    if (this.collisionCooldown > 0) this.collisionCooldown -= dt;
+    if (this.grassImpactCooldown > 0) this.grassImpactCooldown -= dt;
 
     this.throttle = 0;
     let steering = 0;
@@ -169,6 +188,7 @@ export class Car {
       const newMultiplier = 1 + Math.floor(this.driftDuration / 1.5);
       if (newMultiplier > this.comboMultiplier) {
         this.comboMultiplier = newMultiplier;
+        this.maxComboMultiplier = Math.max(this.maxComboMultiplier, this.comboMultiplier);
         let color = '#00ffff'; // x2 cyan
         if (this.comboMultiplier === 3) color = '#ff00ff'; // x3 magenta
         if (this.comboMultiplier >= 4) color = '#ff3300'; // x4+ bold red-orange
@@ -217,10 +237,11 @@ export class Car {
     this.isBoosting = false;
     if (attemptingBoost && this.boostLevel > 0) {
       this.isBoosting = true;
+      this.usedBoost = true;
       this.boostLevel -= 30 * dt; // Drain rate
       if (this.boostLevel < 0) this.boostLevel = 0;
     } else if (this.isDrifting) {
-      this.boostLevel += 15 * dt; // Fill rate when drifting (and not boosting)
+      this.boostLevel += this.boostChargeRate * dt; // Fill rate when drifting (and not boosting)
       if (this.boostLevel > this.maxBoost) this.boostLevel = this.maxBoost;
     }
 
@@ -295,6 +316,13 @@ export class Car {
     this.skidmarks.forEach(mark => mark.age += dt);
     this.skidmarks = this.skidmarks.filter(mark => mark.age < 3); // Keep marks for 3 seconds
 
+    if (this.onGrass && !this.wasOnGrass && speed > 240 && this.grassImpactCooldown <= 0) {
+      this.offTrackHits += 1;
+      this.damageTaken += Math.min(8, Math.max(2, Math.round((speed - 220) / 55)));
+      this.grassImpactCooldown = 0.5;
+    }
+    this.wasOnGrass = this.onGrass;
+
     // 6. Slipstreaming & Collisions with other cars
     this.isDrafting = false;
     for (const otherCar of allCars) {
@@ -307,37 +335,58 @@ export class Car {
       // Collisions (circle-based, radius ~15)
       const minDistance = 30; // 15 + 15
       if (dist < minDistance) {
-        // Simple resolution
-        const overlap = minDistance - dist;
-        const nx = dx / dist;
-        const ny = dy / dist;
+        const shouldResolveCollision = otherCar.playerIndex === undefined
+          || this.playerIndex === undefined
+          || otherCar.playerIndex > this.playerIndex;
+        if (shouldResolveCollision) {
+          // Simple resolution
+          const overlap = minDistance - dist;
+          const safeDist = dist || 0.001;
+          const nx = dx / safeDist;
+          const ny = dy / safeDist;
 
-        // Push apart (assuming equal mass)
-        this.x -= nx * overlap * 0.5;
-        this.y -= ny * overlap * 0.5;
-        otherCar.x += nx * overlap * 0.5;
-        otherCar.y += ny * overlap * 0.5;
+          // Push apart (assuming equal mass)
+          this.x -= nx * overlap * 0.5;
+          this.y -= ny * overlap * 0.5;
+          otherCar.x += nx * overlap * 0.5;
+          otherCar.y += ny * overlap * 0.5;
 
-        // Momentum exchange
-        const relVelX = this.velocity.x - otherCar.velocity.x;
-        const relVelY = this.velocity.y - otherCar.velocity.y;
-        const speedAlongNormal = relVelX * nx + relVelY * ny;
+          // Momentum exchange
+          const relVelX = this.velocity.x - otherCar.velocity.x;
+          const relVelY = this.velocity.y - otherCar.velocity.y;
+          const speedAlongNormal = relVelX * nx + relVelY * ny;
 
-        if (speedAlongNormal > 0) {
-           const restitution = 0.5;
-           const j = -(1 + restitution) * speedAlongNormal / 2;
-           const impulseX = j * nx;
-           const impulseY = j * ny;
+          if (speedAlongNormal > 0) {
+             const restitution = 0.5;
+             const j = -(1 + restitution) * speedAlongNormal / 2;
+             const impulseX = j * nx;
+             const impulseY = j * ny;
 
-           this.velocity.x += impulseX;
-           this.velocity.y += impulseY;
-           otherCar.velocity.x -= impulseX;
-           otherCar.velocity.y -= impulseY;
+             this.velocity.x += impulseX;
+             this.velocity.y += impulseY;
+             otherCar.velocity.x -= impulseX;
+             otherCar.velocity.y -= impulseY;
+          }
+
+          const impactSpeed = speedAlongNormal;
+          if (impactSpeed > 120 && this.collisionCooldown <= 0 && otherCar.collisionCooldown <= 0) {
+            const collisionDamage = Math.min(10, Math.max(2, Math.round(impactSpeed / 55)));
+            const creditPenalty = Math.min(10, Math.max(2, Math.round(impactSpeed / 80)));
+
+            this.collisionCount += 1;
+            otherCar.collisionCount += 1;
+            this.damageTaken += collisionDamage;
+            otherCar.damageTaken += collisionDamage;
+            this.contactPenalty += creditPenalty;
+            otherCar.contactPenalty += creditPenalty;
+            this.collisionCooldown = 0.2;
+            otherCar.collisionCooldown = 0.2;
+          }
+
+          // Apply a tiny bit of angular disturbance
+          this.heading += (Math.random() - 0.5) * 0.2;
+          otherCar.heading += (Math.random() - 0.5) * 0.2;
         }
-
-        // Apply a tiny bit of angular disturbance
-        this.heading += (Math.random() - 0.5) * 0.2;
-        otherCar.heading += (Math.random() - 0.5) * 0.2;
       }
 
       // Slipstreaming (Drafting)
@@ -383,6 +432,7 @@ export class Car {
     if (this.pendingDriftScore > 50) {
       const finalScore = Math.floor(this.pendingDriftScore * this.comboMultiplier);
       this.score = (this.score || 0) + finalScore;
+      this.bestBankScore = Math.max(this.bestBankScore, finalScore);
       this.addFloatingText(`+${finalScore}`, '#00ffcc', 2.0, 22);
     }
     

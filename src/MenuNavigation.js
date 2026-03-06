@@ -140,7 +140,7 @@ export class MenuNavigation {
     // Attempt to find a back button in the active menu
     if (!this.activeMenu) return;
     
-    const possibleBackIds = ['campaignBackBtn', 'settingsBackBtn', 'leaderboardBackBtn', 'lobbyBackBtn', 'menuBtn', 'quitBtn'];
+    const possibleBackIds = ['garageBackBtn', 'campaignBackBtn', 'settingsBackBtn', 'leaderboardBackBtn', 'lobbyBackBtn', 'menuBtn', 'quitBtn'];
     
     for (let id of possibleBackIds) {
       const btn = this.activeMenu.querySelector(`#${id}`);

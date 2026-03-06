@@ -8,6 +8,7 @@ export class GhostRecorder {
     this.currentFrames = [];
     // Best (fastest) lap frames saved for playback
     this.bestFrames = null;
+    this.bestLapTime = Infinity;
   }
 
   /** Call every frame while the car is racing. */

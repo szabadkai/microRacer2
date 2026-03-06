@@ -7,6 +7,30 @@ import { AudioManager } from './AudioManager.js';
 import { GamepadManager } from './GamepadManager.js';
 import { GhostRecorder, GhostPlayer } from './GhostRecorder.js';
 import { MenuNavigation } from './MenuNavigation.js';
+import { CAR_DEFS, CAR_ORDER, UPGRADE_LANES } from './GarageData.js';
+import { TIER_ORDER, TIER_SHORT_LABELS } from './CampaignGoals.js';
+import {
+  applyCampaignRaceResult,
+  buildCarSpec,
+  clearLeaderboard as clearSavedLeaderboard,
+  getActiveCampaignGoalText,
+  getBossRewardPreview,
+  getLevelCardData,
+  getLevelMastery,
+  getLeaderboardRecords as getSavedLeaderboardRecords,
+  getLevelRewardPreview,
+  getRepairQuote,
+  getSavedGhost,
+  getSectionProgress,
+  getSelectedCarDef,
+  loadSave,
+  purchaseUpgrade,
+  repairCar,
+  saveGhost,
+  saveLeaderboardRecord as saveSavedLeaderboardRecord,
+  saveSave,
+  setSelectedCar
+} from './ProgressionStore.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -23,9 +47,22 @@ const audioManager = new AudioManager();
 let cars = [];
 
 // Ghost state
-let ghostsEnabled = localStorage.getItem('ghostsEnabled') !== 'false';
+let saveData = null;
+let ghostsEnabled = true;
 let ghostRecorders = [];
 let ghostPlayers = [];
+let currentResultsReward = {
+  masteryEarned: [],
+  grossCredits: 0,
+  penaltyCredits: 0,
+  creditsEarned: 0,
+  repairEstimate: 0,
+  newUnlocks: [],
+  nextObjective: '--'
+};
+let garageReturnScreen = null;
+let garageBrowseIndex = 0;
+let garagePreviewTime = 0;
 
 let lastTime = 0;
 let lastDt = 0;
@@ -40,6 +77,7 @@ const STATE = {
   STUDIO_SPLASH: -1,
   SPLASH: 0,
   PROFILE: 12,
+  GARAGE: 13,
   MENU: 1,
   LOBBY: 2,
   COUNTDOWN: 3,
@@ -107,18 +145,20 @@ let eliminationTimer = 0;
 const ELIMINATION_INTERVAL = 20;
 
 function getUnlockedCampaignLevel() {
-  return parseInt(localStorage.getItem('unlockedCampaignLevel') || '0');
+  return saveData?.campaign?.unlockedLevelIndex ?? 0;
 }
 function unlockCampaignLevel(levelIndex) {
+  if (!saveData) return;
   const current = getUnlockedCampaignLevel();
   if (levelIndex > current) {
-    localStorage.setItem('unlockedCampaignLevel', levelIndex.toString());
+    saveData.campaign.unlockedLevelIndex = levelIndex;
+    saveSave(saveData);
   }
 }
 
 let gameState = STATE.STUDIO_SPLASH;
 let countdownTimer = 3;
-let seenTutorials = JSON.parse(localStorage.getItem('microRacer2_tutorials')) || {};
+let seenTutorials = {};
 
 // ============================================
 // TRACK DATA
@@ -136,6 +176,10 @@ const tracks = [
   { id: 'synthwave_sprint', name: 'Synthwave Sprint', theme: 'sunset_strip', shape: 'synthwave', seed: 77777, radius: 2500, pointsCount: 65 },
   { id: 'crystal_canyon', name: 'Crystal Canyon', theme: 'ice_circuit', shape: 'complex', seed: 88888, radius: 3200, pointsCount: 75 }
 ];
+
+saveData = loadSave(tracks.map((trackData) => trackData.id), CAMPAIGN_LEVELS);
+ghostsEnabled = saveData.settings.ghostsEnabled;
+seenTutorials = saveData.settings.seenTutorials || {};
 
 let currentTrackIndex = 0;
 let selectedPlayerCount = 1;
@@ -196,6 +240,7 @@ const settingsScreen = document.getElementById('settingsScreen');
 const settingsPlayerName = document.getElementById('settingsPlayerName');
 const leaderboardScreen = document.getElementById('leaderboardScreen');
 const campaignMenu = document.getElementById('campaignMenu');
+const garageScreen = document.getElementById('garageScreen');
 const lobbyMenu = document.getElementById('lobbyMenu');
 const countdownMenu = document.getElementById('countdownMenu');
 const onboardingScreen = document.getElementById('onboardingScreen');
@@ -209,6 +254,7 @@ const uiLayer = document.getElementById('ui');
 // Buttons
 const startBtn = document.getElementById('startBtn');
 const campaignBtn = document.getElementById('campaignBtn');
+const garageBtn = document.getElementById('garageBtn');
 const campaignBackBtn = document.getElementById('campaignBackBtn');
 const campaignLevelGrid = document.getElementById('campaignLevelGrid');
 const settingsBtn = document.getElementById('settingsBtn');
@@ -223,6 +269,39 @@ const pauseRestartBtn = document.getElementById('pauseRestartBtn');
 const quitBtn = document.getElementById('quitBtn');
 const restartBtn = document.getElementById('restartBtn');
 const menuBtn = document.getElementById('menuBtn');
+const garageBackBtn = document.getElementById('garageBackBtn');
+const garagePrevBtn = document.getElementById('garagePrevBtn');
+const garageNextBtn = document.getElementById('garageNextBtn');
+const garageSelectBtn = document.getElementById('garageSelectBtn');
+const garageResultsBtn = document.getElementById('garageResultsBtn');
+
+const garageCarName = document.getElementById('garageCarName');
+const garageCarRole = document.getElementById('garageCarRole');
+const garageCarStatus = document.getElementById('garageCarStatus');
+const garageCarDescription = document.getElementById('garageCarDescription');
+const garageLockReason = document.getElementById('garageLockReason');
+const garageStatAccel = document.getElementById('garageStatAccel');
+const garageStatSpeed = document.getElementById('garageStatSpeed');
+const garageStatGrip = document.getElementById('garageStatGrip');
+const garageStatNitro = document.getElementById('garageStatNitro');
+const garageEngineLevel = document.getElementById('garageEngineLevel');
+const garageGripLevel = document.getElementById('garageGripLevel');
+const garageNitroLevel = document.getElementById('garageNitroLevel');
+const garageEngineCost = document.getElementById('garageEngineCost');
+const garageGripCost = document.getElementById('garageGripCost');
+const garageNitroCost = document.getElementById('garageNitroCost');
+const garageConditionValue = document.getElementById('garageConditionValue');
+const garageConditionStatus = document.getElementById('garageConditionStatus');
+const garageRepairEstimate = document.getElementById('garageRepairEstimate');
+const garageRepairPatchBtn = document.getElementById('garageRepairPatchBtn');
+const garageRepairPatchCost = document.getElementById('garageRepairPatchCost');
+const garageRepairFullBtn = document.getElementById('garageRepairFullBtn');
+const garageRepairFullCost = document.getElementById('garageRepairFullCost');
+const garagePreviewCanvas = document.getElementById('garagePreviewCanvas');
+const garagePreviewCtx = garagePreviewCanvas ? garagePreviewCanvas.getContext('2d') : null;
+const garagePreviewTag = document.getElementById('garagePreviewTag');
+const garagePreviewConditionTag = document.getElementById('garagePreviewConditionTag');
+const garageUpgradeButtons = document.querySelectorAll('.garage-upgrade-btn');
 
 // Track selector
 const prevTrackBtn = document.getElementById('prevTrack');
@@ -240,6 +319,17 @@ const controlsInfo = document.getElementById('controlsInfo');
 const leaderboardList = document.getElementById('leaderboardList');
 const leaderboardTrackName = document.getElementById('leaderboardTrackName');
 const mobileControls = document.getElementById('mobileControls');
+const rewardPanel = document.getElementById('rewardPanel');
+const rewardMasteryValue = document.getElementById('rewardMasteryValue');
+const rewardGrossValue = document.getElementById('rewardGrossValue');
+const rewardPenaltyValue = document.getElementById('rewardPenaltyValue');
+const rewardCreditsValue = document.getElementById('rewardCreditsValue');
+const rewardRepairValue = document.getElementById('rewardRepairValue');
+const rewardUnlocksValue = document.getElementById('rewardUnlocksValue');
+const rewardNextRewardValue = document.getElementById('rewardNextRewardValue');
+const profileNameDisplays = document.querySelectorAll('[data-profile-name]');
+const profileCarDisplays = document.querySelectorAll('[data-profile-car]');
+const profileCreditsDisplays = document.querySelectorAll('[data-profile-credits]');
 
 // Touch Support State
 let touchEnabled = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || new URLSearchParams(window.location.search).has('mobile');
@@ -263,6 +353,7 @@ function hideAllMenus() {
   settingsScreen.classList.add('hidden');
   leaderboardScreen.classList.add('hidden');
   campaignMenu.classList.add('hidden');
+  garageScreen.classList.add('hidden');
   lobbyMenu.classList.add('hidden');
   countdownMenu.classList.add('hidden');
   onboardingScreen.classList.add('hidden');
@@ -275,6 +366,301 @@ function showMenu(menu) {
   menu.classList.remove('hidden');
   menuNav.setActiveMenu(menu);
   menuNav.setEnabled(true);
+}
+
+function getPlayerName() {
+  return saveData?.profile?.playerName?.trim() || 'Player';
+}
+
+function getSelectedCarId() {
+  return saveData?.garage?.selectedCarId || 'starter';
+}
+
+function getSelectedCarLabel() {
+  return getSelectedCarDef(saveData).name;
+}
+
+function formatCredits(value) {
+  return `${value} CR`;
+}
+
+function saveAllProgress() {
+  if (!saveData) return;
+  saveData.settings.ghostsEnabled = ghostsEnabled;
+  saveData.settings.seenTutorials = seenTutorials;
+  saveSave(saveData);
+  syncProfileDisplays();
+}
+
+function syncProfileDisplays() {
+  const playerName = getPlayerName();
+  const carLabel = getSelectedCarLabel();
+  const creditsLabel = formatCredits(saveData?.garage?.credits || 0);
+
+  profileNameDisplays.forEach((element) => {
+    element.textContent = `Driver: ${playerName}`;
+  });
+  profileCarDisplays.forEach((element) => {
+    element.textContent = `Car: ${carLabel}`;
+  });
+  profileCreditsDisplays.forEach((element) => {
+    element.textContent = creditsLabel;
+  });
+}
+
+function getNextCampaignRewardText() {
+  const bossLevelIds = ['c6', 'c12', 'c18', 'c24', 'c30'];
+  for (const levelId of bossLevelIds) {
+    if (!saveData.campaign.clearedLevelIds.includes(levelId)) {
+      return getBossRewardPreview(levelId) || 'Keep racing';
+    }
+  }
+  return saveData.campaign.campaignComplete ? 'Campaign complete' : 'All boss rewards claimed';
+}
+
+function setRewardPanelVisible(visible) {
+  rewardPanel.classList.toggle('hidden', !visible);
+}
+
+function updateRewardPanel(reward) {
+  currentResultsReward = reward;
+  rewardMasteryValue.textContent = reward.masteryEarned && reward.masteryEarned.length > 0 ? reward.masteryEarned.join(', ') : 'None';
+  rewardGrossValue.textContent = formatCredits(reward.grossCredits || 0);
+  rewardPenaltyValue.textContent = formatCredits(reward.penaltyCredits || 0);
+  rewardCreditsValue.textContent = formatCredits(reward.creditsEarned || 0);
+  rewardRepairValue.textContent = formatCredits(reward.repairEstimate || 0);
+  rewardUnlocksValue.textContent = reward.newUnlocks && reward.newUnlocks.length > 0 ? reward.newUnlocks.join(', ') : 'None';
+  rewardNextRewardValue.textContent = reward.nextObjective || '--';
+  setRewardPanelVisible(Boolean(reward.show));
+}
+
+function setGarageMessage(text, isError = false) {
+  if (!text) {
+    garageLockReason.classList.remove('garage-lock-error');
+    garageLockReason.classList.add('hidden');
+    return;
+  }
+  garageLockReason.textContent = text;
+  garageLockReason.classList.remove('hidden');
+  garageLockReason.classList.toggle('garage-lock-error', isError);
+}
+
+function setGarageStatBar(element, value, min, max) {
+  const pct = ((value - min) / (max - min)) * 100;
+  element.style.width = `${Math.max(12, Math.min(100, pct))}%`;
+}
+
+function renderGarage() {
+  const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+  const carDef = CAR_DEFS[carId];
+  const spec = buildCarSpec(saveData, carId);
+  const unlocked = saveData.garage.unlockedCarIds.includes(carId);
+  const selected = getSelectedCarId() === carId;
+  const repairQuote = getRepairQuote(saveData, carId);
+
+  garageCarName.textContent = carDef.name;
+  garageCarRole.textContent = carDef.role;
+  garageCarDescription.textContent = carDef.description;
+  garageCarStatus.textContent = selected ? 'SELECTED' : (unlocked ? 'OWNED' : 'LOCKED');
+  garageCarStatus.classList.toggle('locked', !unlocked);
+
+  setGarageStatBar(garageStatAccel, spec.acceleration, 540, 700);
+  setGarageStatBar(garageStatSpeed, spec.maxSpeed, 740, 880);
+  setGarageStatBar(garageStatGrip, spec.grip, 700, 1050);
+  setGarageStatBar(garageStatNitro, spec.maxBoost, 90, 140);
+  garageConditionValue.textContent = `${repairQuote.condition}%`;
+  garageConditionStatus.textContent = repairQuote.status;
+  garageRepairEstimate.textContent = `Repair estimate: ${formatCredits(repairQuote.fullCost)}`;
+  garageRepairPatchCost.textContent = repairQuote.patchCost > 0 ? formatCredits(repairQuote.patchCost) : 'NO DAMAGE';
+  garageRepairFullCost.textContent = repairQuote.fullCost > 0 ? formatCredits(repairQuote.fullCost) : 'NO DAMAGE';
+  if (garagePreviewTag) {
+    garagePreviewTag.textContent = `${carDef.name} rig`;
+  }
+  if (garagePreviewConditionTag) {
+    garagePreviewConditionTag.textContent = repairQuote.status;
+    garagePreviewConditionTag.classList.remove('garage-stage-pill-warn', 'garage-stage-pill-danger');
+    if (repairQuote.damage >= 50) {
+      garagePreviewConditionTag.classList.add('garage-stage-pill-danger');
+    } else if (repairQuote.damage > 0) {
+      garagePreviewConditionTag.classList.add('garage-stage-pill-warn');
+    }
+  }
+  garageRepairPatchBtn.disabled = !unlocked || repairQuote.patchCost <= 0 || saveData.garage.credits < repairQuote.patchCost;
+  garageRepairFullBtn.disabled = !unlocked || repairQuote.fullCost <= 0 || saveData.garage.credits < repairQuote.fullCost;
+
+  if (!unlocked) {
+    setGarageMessage(carDef.unlockText);
+  } else {
+    setGarageMessage('');
+  }
+
+  garageSelectBtn.disabled = !unlocked || selected;
+  garageSelectBtn.textContent = !unlocked ? 'Locked' : (selected ? 'Selected' : 'Select Car');
+
+  garageUpgradeButtons.forEach((button) => {
+    const laneId = button.dataset.lane;
+    const lane = UPGRADE_LANES[laneId];
+    const level = saveData.garage.upgrades[carId]?.[laneId] || 0;
+    const levelLabel = document.getElementById(`garage${lane.label}Level`);
+    const costLabel = document.getElementById(`garage${lane.label}Cost`);
+    const atMax = level >= 2;
+    const nextCost = atMax ? null : lane.costs[level];
+    const needsTierUnlock = level === 1 && !saveData.garage.level2Unlocked;
+
+    levelLabel.textContent = `LV ${level}/2`;
+    if (atMax) {
+      costLabel.textContent = 'MAXED';
+    } else if (needsTierUnlock) {
+      costLabel.textContent = 'LOCKED';
+    } else {
+      costLabel.textContent = `${nextCost} CR`;
+    }
+
+    button.disabled = !unlocked || atMax || needsTierUnlock || saveData.garage.credits < (nextCost || 0);
+  });
+
+  syncProfileDisplays();
+}
+
+function showGarage(returnScreen = mainMenu) {
+  gameState = STATE.GARAGE;
+  garageReturnScreen = returnScreen;
+  garageBrowseIndex = Math.max(0, CAR_ORDER.indexOf(getSelectedCarId()));
+  renderGarage();
+  showMenu(garageScreen);
+}
+
+function closeGarage() {
+  if (garageReturnScreen === gameOverMenu) {
+    gameState = STATE.GAMEOVER;
+    showMenu(gameOverMenu);
+    return;
+  }
+  showMainMenu();
+}
+
+function renderGaragePreview(dt) {
+  if (gameState !== STATE.GARAGE || !garagePreviewCanvas || !garagePreviewCtx) return;
+
+  garagePreviewTime += dt;
+
+  const rect = garagePreviewCanvas.getBoundingClientRect();
+  const width = Math.max(1, rect.width);
+  const height = Math.max(1, rect.height);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelWidth = Math.max(1, Math.round(width * dpr));
+  const pixelHeight = Math.max(1, Math.round(height * dpr));
+
+  if (garagePreviewCanvas.width !== pixelWidth || garagePreviewCanvas.height !== pixelHeight) {
+    garagePreviewCanvas.width = pixelWidth;
+    garagePreviewCanvas.height = pixelHeight;
+  }
+
+  garagePreviewCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  garagePreviewCtx.clearRect(0, 0, width, height);
+
+  const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+  const carDef = CAR_DEFS[carId];
+  const spec = buildCarSpec(saveData, carId);
+  const repairQuote = getRepairQuote(saveData, carId);
+  const t = garagePreviewTime;
+  const centerX = width * 0.5;
+  const centerY = height * 0.52;
+  const ctx = garagePreviewCtx;
+
+  // Atmosphere glow and stage beams.
+  const backGlow = ctx.createRadialGradient(centerX, height * 0.35, 10, centerX, height * 0.35, height * 0.65);
+  backGlow.addColorStop(0, 'rgba(0, 255, 204, 0.22)');
+  backGlow.addColorStop(0.45, 'rgba(255, 0, 255, 0.10)');
+  backGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = backGlow;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.translate(centerX, centerY - 68);
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * 58, -110);
+    ctx.lineTo(i * 16, 110);
+    ctx.strokeStyle = `rgba(0, 255, 204, ${0.06 + (i + 1) * 0.02})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Rotating showroom rings.
+  ctx.save();
+  ctx.translate(centerX, centerY + 40);
+  ctx.rotate(t * 0.22);
+  ctx.strokeStyle = 'rgba(0, 255, 204, 0.38)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 136, 44, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.rotate(-t * 0.48);
+  ctx.strokeStyle = 'rgba(255, 0, 255, 0.22)';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 168, 58, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Stage floor glow and shadow.
+  const floorGlow = ctx.createRadialGradient(centerX, centerY + 42, 6, centerX, centerY + 42, 150);
+  floorGlow.addColorStop(0, 'rgba(0, 255, 204, 0.24)');
+  floorGlow.addColorStop(0.45, 'rgba(255, 0, 255, 0.10)');
+  floorGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = floorGlow;
+  ctx.beginPath();
+  ctx.ellipse(centerX, centerY + 42, 146, 62, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    const y = centerY + 20 + i * 12;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 150, y);
+    ctx.lineTo(centerX + 150, y);
+    ctx.stroke();
+  }
+
+  // Preview car itself, using the in-game renderer for visual consistency.
+  const previewCar = new Car(
+    centerX + Math.sin(t * 1.2) * 8,
+    centerY - 2 + Math.sin(t * 2.4) * 4,
+    carDef?.color || '#00ffcc',
+    getPlayerControls(0).keys,
+    spec
+  );
+  previewCar.heading = -0.12 + Math.sin(t * 0.55) * 0.22;
+  previewCar.velocity.x = spec.maxSpeed * (0.28 + 0.06 * Math.sin(t * 0.95));
+  previewCar.velocity.y = Math.cos(t * 1.1) * 16;
+  previewCar.throttle = 1;
+  previewCar.isBoosting = Math.sin(t * 1.7) > 0.84;
+  previewCar.isDrifting = Math.sin(t * 2.2) > 0.72;
+  previewCar.maxSpeed = spec.maxSpeed;
+  previewCar.draw(ctx);
+
+  // Damage-aware sparks and warning pulses for rough cars.
+  if (repairQuote.damage > 45) {
+    const sparkCount = repairQuote.damage > 75 ? 5 : 3;
+    for (let i = 0; i < sparkCount; i++) {
+      const sparkT = t * (2.2 + i * 0.35);
+      const sx = centerX - 24 + Math.sin(sparkT + i) * 26;
+      const sy = centerY + 12 + Math.cos(sparkT * 1.3 + i) * 10;
+      const len = 10 + ((i + 1) % 3) * 4;
+      ctx.strokeStyle = repairQuote.damage > 75 ? 'rgba(255, 90, 40, 0.8)' : 'rgba(255, 204, 0, 0.75)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + len, sy - len * 0.4);
+      ctx.stroke();
+    }
+  }
+
+  // Front-facing hologram caption line.
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.fillRect(centerX - 120, height - 52, 240, 1);
 }
 
 // ============================================
@@ -328,8 +714,7 @@ function showSplash() {
 }
 
 function skipSplash() {
-  const savedName = localStorage.getItem('playerName');
-  if (savedName) {
+  if (saveData.profile.playerName) {
     showMainMenu();
   } else {
     showProfileScreen();
@@ -343,13 +728,15 @@ function skipSplash() {
 function showProfileScreen() {
   gameState = STATE.PROFILE;
   showMenu(profileScreen);
+  playerNameInput.value = saveData.profile.playerName || '';
   playerNameInput.focus();
 }
 
 saveProfileBtn.addEventListener('click', () => {
   let name = playerNameInput.value.trim();
   if (!name) name = 'Player';
-  localStorage.setItem('playerName', name);
+  saveData.profile.playerName = name;
+  saveAllProgress();
   showMainMenu();
 });
 
@@ -360,6 +747,8 @@ saveProfileBtn.addEventListener('click', () => {
 function showMainMenu() {
   gameState = STATE.MENU;
   currentGameMode = GAMEMODE.QUICKRACE;
+  garageReturnScreen = null;
+  syncProfileDisplays();
   showMenu(mainMenu);
   updateTrackDisplay();
   updateControlsDisplay();
@@ -371,6 +760,7 @@ function showMainMenu() {
 
 function showCampaignMenu() {
   gameState = STATE.CAMPAIGN;
+  syncProfileDisplays();
   showMenu(campaignMenu);
   
   const unlockedLevel = getUnlockedCampaignLevel();
@@ -399,8 +789,17 @@ function showCampaignMenu() {
     const sectionWrapper = document.createElement('div');
     sectionWrapper.className = 'campaign-section';
     
-    const sectionTitles = ['Section 1: Rookie', 'Section 2: Intermediate', 'Section 3: Advanced', 'Section 4: Master'];
-    sectionWrapper.innerHTML = `<h2>${sectionTitles[s] || 'Section ' + (s + 1)}</h2>`;
+    const sectionTitles = ['Section 1: Rookie', 'Section 2: Intermediate', 'Section 3: Advanced', 'Section 4: Master', 'Section 5: Legend'];
+    const sectionProgress = getSectionProgress(saveData, CAMPAIGN_LEVELS, s);
+    sectionWrapper.innerHTML = `
+      <h2>${sectionTitles[s] || 'Section ' + (s + 1)}</h2>
+      <p class="section-meta">
+        ${sectionProgress.clearedCount}/${sectionProgress.total} cleared ·
+        Mastery: ${sectionProgress.masteryEarned}/${sectionProgress.masteryTotal} ·
+        Section Bonus: ${sectionProgress.sectionBonusClaimed ? 'Claimed' : formatCredits(sectionProgress.sectionBonusValue)} ·
+        Boss Reward: ${sectionProgress.bossCleared ? 'Claimed' : (sectionProgress.bossRewardText || '--')}
+      </p>
+    `;
     
     const levelsContainer = document.createElement('div');
     levelsContainer.className = 'section-levels-grid';
@@ -408,18 +807,32 @@ function showCampaignMenu() {
     for (let i = sectionStart; i < sectionEnd; i++) {
         const level = CAMPAIGN_LEVELS[i];
         const isLocked = i > unlockedLevel;
-        const isCompleted = i < unlockedLevel; // If unlockedLevel has advanced past this i, it's completed
+        const isCompleted = saveData.campaign.clearedLevelIds.includes(level.id);
         const isBoss = (i % 6) === 5;
+        const cardData = getLevelCardData(saveData, level);
+        const completionStamp = cardData.masteryCount === 4 ? 'PERFECTED' : 'COMPLETED';
+        const masteryChips = TIER_ORDER.map((tierId) => {
+          const completed = cardData.mastery[tierId];
+          const hiddenMasked = tierId === 'hidden' && !cardData.mastery.hiddenRevealed && !completed;
+          const label = hiddenMasked ? '???' : TIER_SHORT_LABELS[tierId];
+          return `<span class="mastery-chip ${completed ? 'completed' : ''} ${tierId === 'hidden' ? 'hidden-tier' : ''}">${label}</span>`;
+        }).join('');
+        const hiddenText = cardData.mastery.hiddenRevealed || cardData.mastery.hidden
+          ? cardData.goals.hidden.label
+          : 'Hidden goal locked';
         
         const card = document.createElement('div');
         card.className = `level-card ${isLocked ? 'locked' : ''} ${isCompleted ? 'completed' : ''} ${isBoss ? 'boss-level' : ''}`;
         card.tabIndex = isLocked ? -1 : 0;
         
         card.innerHTML = `
-          ${isCompleted ? '<div class="completion-stamp">COMPLETED</div>' : ''}
+          ${isCompleted ? `<div class="completion-stamp">${completionStamp}</div>` : ''}
           <h3>${i + 1}. ${level.name}</h3>
           <p>Track: ${tracks[level.trackIndex].name}</p>
-          <div class="challenge">${level.challengeText}</div>
+          <div class="challenge">${cardData.nextObjective}</div>
+          <div class="mastery-strip">${masteryChips}</div>
+          <div class="mastery-note">Hidden: ${hiddenText}</div>
+          <div class="reward-preview">${getLevelRewardPreview(saveData, level)}</div>
         `;
         
         if (!isLocked) {
@@ -444,6 +857,7 @@ function showCampaignMenu() {
 function updateTrackDisplay() {
   trackNumber.textContent = `${currentTrackIndex + 1}/${tracks.length}`;
   trackName.textContent = tracks[currentTrackIndex].name;
+  syncProfileDisplays();
 }
 
 let playerInputPreferences = ['keyboard', 'keyboard', 'keyboard', 'keyboard'];
@@ -542,16 +956,16 @@ nextTrackBtn.addEventListener('click', () => {
 // ============================================
 
 // Volume state (persisted)
-let musicVolume = parseFloat(localStorage.getItem('musicVolume') ?? '0.5');
-let sfxVolume = parseFloat(localStorage.getItem('sfxVolume') ?? '0.4');
+let musicVolume = saveData.settings.musicVolume;
+let sfxVolume = saveData.settings.sfxVolume;
 
 function showSettings() {
   gameState = STATE.SETTINGS;
   showMenu(settingsScreen);
+  syncProfileDisplays();
 
   // Sync player name
-  const savedName = localStorage.getItem('playerName') || 'Player';
-  settingsPlayerName.value = savedName;
+  settingsPlayerName.value = getPlayerName();
 
   // Sync toggle states
   const ghostToggleSettings = document.getElementById('ghostToggleSettings');
@@ -571,7 +985,8 @@ function showSettings() {
 // Settings ghost toggle
 document.getElementById('ghostToggleSettings').addEventListener('change', (e) => {
   ghostsEnabled = e.target.checked;
-  localStorage.setItem('ghostsEnabled', ghostsEnabled.toString());
+  saveData.settings.ghostsEnabled = ghostsEnabled;
+  saveAllProgress();
   document.getElementById('ghostToggleSettingsLabel').textContent = ghostsEnabled ? 'ON' : 'OFF';
   // Also // Sync with pause menu toggle
   const pauseToggle = document.getElementById('ghostTogglePause');
@@ -588,13 +1003,15 @@ settingsPlayerName.addEventListener('change', (e) => {
     name = 'Player';
     e.target.value = name;
   }
-  localStorage.setItem('playerName', name);
+  saveData.profile.playerName = name;
+  saveAllProgress();
 });
 
 // Settings tutorials reset
 document.getElementById('resetTutorialsBtn').addEventListener('click', (e) => {
   seenTutorials = {};
-  localStorage.removeItem('microRacer2_tutorials');
+  saveData.settings.seenTutorials = {};
+  saveAllProgress();
   const btn = e.target;
   const originalText = btn.textContent;
   btn.textContent = 'Reset!';
@@ -608,7 +1025,8 @@ document.getElementById('musicVolumeSettings').addEventListener('input', (e) => 
   musicVolume = parseFloat(e.target.value);
   document.getElementById('musicVolumeSettingsLabel').textContent = Math.round(musicVolume * 100) + '%';
   audioManager.setMusicVolume(musicVolume);
-  localStorage.setItem('musicVolume', musicVolume.toString());
+  saveData.settings.musicVolume = musicVolume;
+  saveAllProgress();
   // Sync with pause menu slider
   const pauseSlider = document.getElementById('musicVolume');
   if (pauseSlider) {
@@ -621,7 +1039,8 @@ document.getElementById('sfxVolumeSettings').addEventListener('input', (e) => {
   sfxVolume = parseFloat(e.target.value);
   document.getElementById('sfxVolumeSettingsLabel').textContent = Math.round(sfxVolume * 100) + '%';
   audioManager.setSfxVolume(sfxVolume);
-  localStorage.setItem('sfxVolume', sfxVolume.toString());
+  saveData.settings.sfxVolume = sfxVolume;
+  saveAllProgress();
   // Sync with pause menu slider
   const pauseSlider = document.getElementById('sfxVolume');
   if (pauseSlider) {
@@ -645,7 +1064,7 @@ function showLeaderboard() {
 
 function loadLeaderboard() {
   const trackId = tracks[currentTrackIndex].id;
-  const records = getLeaderboardRecords(trackId);
+  const records = getSavedLeaderboardRecords(saveData, trackId);
 
   if (records.length === 0) {
     leaderboardList.innerHTML = '<li class="leaderboard-empty">No records yet. Complete a race!</li>';
@@ -657,44 +1076,16 @@ function loadLeaderboard() {
       <span class="leaderboard-rank">${index + 1}.</span>
       <span class="leaderboard-time">${formatTime(record.time)}</span>
       <span class="leaderboard-score">${record.score || 0}</span>
-      <span class="leaderboard-meta">${record.playerName}</span>
+      <span class="leaderboard-meta">${record.playerName} · ${CAR_DEFS[record.carId]?.name || 'Starter'}</span>
     </li>
   `).join('');
 }
 
-function getLeaderboardRecords(trackId) {
-  const key = `leaderboard_${trackId}`;
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    console.warn('Failed to parse leaderboard data:', e);
-    return [];
-  }
-}
-
-function saveLeaderboardRecord(trackId, time, score, playerName) {
-  try {
-    const key = `leaderboard_${trackId}`;
-    const records = getLeaderboardRecords(trackId);
-    records.push({ time, score, playerName, date: Date.now() });
-    records.sort((a, b) => a.time - b.time);
-    const topRecords = records.slice(0, 10); // Keep top 10
-    localStorage.setItem(key, JSON.stringify(topRecords));
-  } catch (e) {
-    console.warn('Failed to save leaderboard record:', e);
-  }
-}
-
 function clearLeaderboard() {
-  try {
-    const trackId = tracks[currentTrackIndex].id;
-    const key = `leaderboard_${trackId}`;
-    localStorage.removeItem(key);
-    loadLeaderboard();
-  } catch (e) {
-    console.warn('Failed to clear leaderboard:', e);
-  }
+  const trackId = tracks[currentTrackIndex].id;
+  clearSavedLeaderboard(saveData, trackId);
+  saveAllProgress();
+  loadLeaderboard();
 }
 
 function formatTime(seconds) {
@@ -825,6 +1216,8 @@ function startGame() {
   audioManager.init();
   audioManager.resume();
   totalRaceTime = 0;
+  updateRewardPanel({ show: false, masteryEarned: [], grossCredits: 0, penaltyCredits: 0, creditsEarned: 0, repairEstimate: 0, newUnlocks: [], nextObjective: '--' });
+  garageResultsBtn.classList.add('hidden');
 
   if (currentGameMode === GAMEMODE.QUICKRACE) {
     // Keep maxLaps default or read from settings if we add them later
@@ -894,10 +1287,21 @@ function startGame() {
     const dirX = Math.cos(startPos.heading + Math.PI / 2) * xOffset;
     const dirY = Math.sin(startPos.heading + Math.PI / 2) * xOffset;
 
-    const car = new Car(startPos.x + dirX, startPos.y + dirY, playerColors[i % playerColors.length], setup.controlKeys || getPlayerControls(i).keys);
+    const useGarageBuild = !setup.isAI && i === 0 && (currentGameMode === GAMEMODE.CAMPAIGN || (currentGameMode === GAMEMODE.QUICKRACE && selectedPlayerCount === 1));
+    const carId = useGarageBuild ? getSelectedCarId() : 'starter';
+    const carSpec = useGarageBuild ? buildCarSpec(saveData, carId) : {};
+    const carColor = useGarageBuild ? (CAR_DEFS[carId]?.color || playerColors[i % playerColors.length]) : playerColors[i % playerColors.length];
+    const car = new Car(
+      startPos.x + dirX,
+      startPos.y + dirY,
+      carColor,
+      setup.controlKeys || getPlayerControls(i).keys,
+      carSpec
+    );
     car.heading = startPos.heading;
     car.gamepadIndex = setup.gamepadIndex;
     car.playerIndex = i;
+    car.carId = carId;
     
     if (setup.isAI) {
       car.isAI = true;
@@ -931,6 +1335,14 @@ function startGame() {
     ghostRecorders.push(new GhostRecorder());
     ghostPlayers.push(null);
   });
+
+  if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1) {
+    const humanCar = cars[0];
+    const savedGhost = getSavedGhost(saveData, tracks[currentTrackIndex].id, humanCar.carId || 'starter');
+    if (savedGhost && ghostsEnabled) {
+      ghostPlayers[0] = new GhostPlayer(savedGhost.frames, humanCar.color);
+    }
+  }
 
   // Show appropriate HUDs
   if (currentGameMode === GAMEMODE.CAMPAIGN) {
@@ -1027,7 +1439,8 @@ onboardingContinueBtn.addEventListener('click', () => {
     if (currentGameMode === GAMEMODE.CAMPAIGN) {
       const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
       seenTutorials[level.id] = true;
-      localStorage.setItem('microRacer2_tutorials', JSON.stringify(seenTutorials));
+      saveData.settings.seenTutorials = seenTutorials;
+      saveAllProgress();
     }
     onboardingScreen.classList.add('hidden');
     startCountdown();
@@ -1055,6 +1468,61 @@ function resumeGame() {
   lastTime = performance.now();
 }
 
+function getRacePosition(targetCar) {
+  const sortedCars = [...cars].filter((car) => !car.isGhost).sort((a, b) => {
+    const aFinished = Boolean(a.finished);
+    const bFinished = Boolean(b.finished);
+    if (aFinished && bFinished) {
+      return (a.finishTime || Infinity) - (b.finishTime || Infinity);
+    }
+    if (aFinished !== bFinished) {
+      return aFinished ? -1 : 1;
+    }
+    if ((a.currentLap || 0) !== (b.currentLap || 0)) {
+      return (b.currentLap || 0) - (a.currentLap || 0);
+    }
+
+    const aInfo = track.getPointInfo(a.x, a.y);
+    const bInfo = track.getPointInfo(b.x, b.y);
+    return bInfo.progressIndex - aInfo.progressIndex;
+  });
+
+  return sortedCars.findIndex((car) => car === targetCar) + 1;
+}
+
+function getUpgradeLevelTotal(carId) {
+  const upgrades = saveData?.garage?.upgrades?.[carId] || {};
+  return Object.values(upgrades).reduce((total, level) => total + (level || 0), 0);
+}
+
+function buildCampaignRaceSummary(level, car) {
+  const carId = car.carId || 'starter';
+  const totalUpgradeLevel = getUpgradeLevelTotal(carId);
+
+  return {
+    levelId: level.id,
+    carId,
+    selectedCarId: carId,
+    totalUpgradeLevel,
+    starterStockBuild: carId === 'starter' && totalUpgradeLevel === 0,
+    finished: Boolean(car.finished),
+    eliminated: Boolean(car.eliminated),
+    survivedElimination: level.isElimination ? !car.eliminated : false,
+    position: getRacePosition(car),
+    totalTime: car.finishTime || totalRaceTime,
+    driftScore: (car.score || 0) + Math.floor(car.pendingDriftScore || 0),
+    draftTime: car.draftTime || 0,
+    cleanRun: !car.hasHitGrass,
+    collisionFree: (car.collisionCount || 0) === 0,
+    collisionCount: car.collisionCount || 0,
+    contactPenalty: car.contactPenalty || 0,
+    damageTaken: car.damageTaken || 0,
+    noBoostUsed: !car.usedBoost,
+    bestBank: car.bestBankScore || 0,
+    maxCombo: car.maxComboMultiplier || 1
+  };
+}
+
 function endGame() {
   gameState = STATE.GAMEOVER;
   audioManager.setEngineMuted(true);
@@ -1063,24 +1531,7 @@ function endGame() {
   uiLayer.classList.add('hidden');
   mobileControls.classList.add('hidden');
 
-  // We temporarily kept the ghost saving logic out of the previous replace, restoring proper ghost saving AND leaderboard logic.
-  const ghostEnabled = ghostsEnabled && currentGameMode === GAMEMODE.QUICKRACE && !tracks[currentTrackIndex].isCampaign;
-
-  cars.forEach((car, i) => {
-    if (car.bestLapTime < Infinity && !car.isGhost && !car.isAI) {
-      if (ghostEnabled && ghostRecorders[car.id] && ghostRecorders[car.id].isRecording) {
-        // Save ghost logic here (original implementation handles this in car update usually, but just in case we let it be)
-      }
-      
-      // Save Leaderboard Record (Single Player Quick Race only)
-      if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1 && !car.isAI) {
-          const playerName = localStorage.getItem('playerName') || 'Player';
-          saveLeaderboardRecord(tracks[currentTrackIndex].id, car.bestLapTime, car.score, playerName);
-      } else if (currentGameMode === GAMEMODE.QUICKRACE && cars.length > 1 && !car.isAI) {
-         // Multiplayer (if you do want to save, or omit as planned)
-      }
-    }
-  });
+  let saveDirty = false;
 
   const winnerText = document.getElementById('winnerText');
   const campaignResultText = document.getElementById('campaignResultText');
@@ -1091,52 +1542,92 @@ function endGame() {
 
   if (currentGameMode === GAMEMODE.CAMPAIGN) {
     const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
-    let challengePassed = true;
-    
-    // Evaluate logic based on challenge setup
-    let playerPos = 1;
-    cars.forEach(c => {
-      if (c !== p1Car && !c.isGhost && c.finished && (c.finishTime < p1Car.finishTime || !p1Car.finished)) playerPos++;
-    });
+    const raceSummary = buildCampaignRaceSummary(level, p1Car);
 
-    if (level.targetDriftScore && p1Car.score < level.targetDriftScore) challengePassed = false;
-    if (level.targetTime && totalRaceTime > level.targetTime) challengePassed = false;
-    if (level.targetDraftTime && p1Car.draftTime < level.targetDraftTime) challengePassed = false;
-    if (level.ai && level.ai.length > 0 && playerPos > 1 && !level.isElimination && !level.targetDraftTime) challengePassed = false; // Requires 1st place if there are AI (except elimination/drafting)
-    if (!p1Car.finished) challengePassed = false; // Must finish
-    if (level.isCleanRacing && p1Car.hasHitGrass) challengePassed = false;
-    if (level.isElimination && p1Car.eliminated) challengePassed = false;
+    let rewardSummary = {
+      show: true,
+      masteryEarned: [],
+      grossCredits: 0,
+      penaltyCredits: 0,
+      creditsEarned: 0,
+      repairEstimate: 0,
+      newUnlocks: [],
+      nextObjective: getActiveCampaignGoalText(saveData, level)
+    };
+    const rewardResult = applyCampaignRaceResult(saveData, level.id, raceSummary, CAMPAIGN_LEVELS);
+    saveDirty = true;
+    const hasNewMastery = rewardResult.newlyCompletedTiers.length > 0;
+    const tier1Passed = rewardResult.tier1Satisfied;
 
-    if (challengePassed) {
+    if (hasNewMastery) {
+      if (campaignResultText) {
+        campaignResultText.textContent = 'Mastery Improved!';
+        campaignResultText.style.color = '#00ffcc';
+        campaignResultText.style.textShadow = '0 0 10px #00ffcc';
+      }
+      rewardSummary = {
+        show: true,
+        masteryEarned: rewardResult.masteryEarned,
+        grossCredits: rewardResult.grossCredits,
+        penaltyCredits: rewardResult.penaltyCredits,
+        creditsEarned: rewardResult.creditsEarned,
+        repairEstimate: rewardResult.repairEstimate,
+        newUnlocks: rewardResult.newUnlocks,
+        nextObjective: rewardResult.nextObjective
+      };
+    } else if (tier1Passed) {
       if (campaignResultText) {
         campaignResultText.textContent = 'Challenge Complete!';
         campaignResultText.style.color = '#00ffcc';
         campaignResultText.style.textShadow = '0 0 10px #00ffcc';
       }
-      unlockCampaignLevel(currentCampaignLevelIndex + 1);
-      const nBtn = document.getElementById('nextLevelBtn');
-      if (nBtn) nBtn.style.display = (currentCampaignLevelIndex < CAMPAIGN_LEVELS.length - 1) ? 'inline-block' : 'none';
+      rewardSummary = {
+        show: true,
+        masteryEarned: [],
+        grossCredits: rewardResult.grossCredits,
+        penaltyCredits: rewardResult.penaltyCredits,
+        creditsEarned: rewardResult.creditsEarned,
+        repairEstimate: rewardResult.repairEstimate,
+        newUnlocks: rewardResult.newUnlocks,
+        nextObjective: rewardResult.nextObjective
+      };
     } else {
       if (campaignResultText) {
         campaignResultText.textContent = 'Challenge Failed!';
         campaignResultText.style.color = '#ff3366';
         campaignResultText.style.textShadow = '0 0 10px #ff3366';
       }
-      const nBtn = document.getElementById('nextLevelBtn');
-      if (nBtn) nBtn.style.display = 'none';
+      rewardSummary = {
+        show: true,
+        masteryEarned: [],
+        grossCredits: 0,
+        penaltyCredits: 0,
+        creditsEarned: 0,
+        repairEstimate: rewardResult.repairEstimate,
+        newUnlocks: [],
+        nextObjective: rewardResult.nextObjective
+      };
     }
+
+    const levelCleared = getLevelMastery(saveData, level.id).tier1;
+    const nBtn = document.getElementById('nextLevelBtn');
+    if (nBtn) nBtn.style.display = (levelCleared && currentCampaignLevelIndex < CAMPAIGN_LEVELS.length - 1) ? 'inline-block' : 'none';
     
     if (campaignResultText) campaignResultText.classList.remove('hidden');
     if (quickRaceActions) quickRaceActions.classList.add('hidden');
     if (campaignActions) campaignActions.classList.remove('hidden');
+    garageResultsBtn.classList.remove('hidden');
     
     winnerText.textContent = level.name;
+    updateRewardPanel(rewardSummary);
 
   } else {
     // Quick Race
     if (campaignResultText) campaignResultText.classList.add('hidden');
     if (quickRaceActions) quickRaceActions.classList.remove('hidden');
     if (campaignActions) campaignActions.classList.add('hidden');
+    updateRewardPanel({ show: false, masteryEarned: [], grossCredits: 0, penaltyCredits: 0, creditsEarned: 0, repairEstimate: 0, newUnlocks: [], nextObjective: '--' });
+    garageResultsBtn.classList.toggle('hidden', cars.length !== 1);
     
     if (cars.length === 1) {
       winnerText.textContent = "RACE OVER";
@@ -1163,6 +1654,10 @@ function endGame() {
     p2StatsContainer.style.display = humanCarsForStats.length > 1 ? 'block' : 'none';
   }
 
+  if (saveDirty) {
+    saveAllProgress();
+  }
+
   showMenu(gameOverMenu);
 }
 
@@ -1170,6 +1665,7 @@ function quitToMenu() {
   gameState = STATE.MENU;
   cars = [];
   joinedPlayers = [];
+  garageReturnScreen = null;
   uiLayer.classList.add('hidden');
   mobileControls.classList.add('hidden');
   audioManager.setEngineMuted(true);
@@ -1211,6 +1707,7 @@ startBtn.addEventListener('click', () => {
   }
 });
 campaignBtn.addEventListener('click', showCampaignMenu);
+garageBtn.addEventListener('click', () => showGarage(mainMenu));
 campaignBackBtn.addEventListener('click', showMainMenu);
 settingsBtn.addEventListener('click', showSettings);
 leaderboardBtn.addEventListener('click', showLeaderboard);
@@ -1242,6 +1739,78 @@ const campaignMenuBtn = document.getElementById('campaignMenuBtn');
 if(campaignMenuBtn) campaignMenuBtn.addEventListener('click', () => {
   quitToMenu();
   showCampaignMenu();
+});
+if (garageResultsBtn) {
+  garageResultsBtn.addEventListener('click', () => showGarage(gameOverMenu));
+}
+if (garageBackBtn) {
+  garageBackBtn.addEventListener('click', closeGarage);
+}
+if (garagePrevBtn) {
+  garagePrevBtn.addEventListener('click', () => {
+    garageBrowseIndex = (garageBrowseIndex - 1 + CAR_ORDER.length) % CAR_ORDER.length;
+    renderGarage();
+  });
+}
+if (garageNextBtn) {
+  garageNextBtn.addEventListener('click', () => {
+    garageBrowseIndex = (garageBrowseIndex + 1) % CAR_ORDER.length;
+    renderGarage();
+  });
+}
+if (garageSelectBtn) {
+  garageSelectBtn.addEventListener('click', () => {
+    const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+    if (setSelectedCar(saveData, carId)) {
+      saveAllProgress();
+      renderGarage();
+      setGarageMessage(`${CAR_DEFS[carId].name} selected.`);
+    }
+  });
+}
+if (garageRepairPatchBtn) {
+  garageRepairPatchBtn.addEventListener('click', () => {
+    const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+    const result = repairCar(saveData, carId, 'patch');
+    if (result.ok) {
+      saveAllProgress();
+      renderGarage();
+      setGarageMessage(`Patch job complete for ${formatCredits(result.cost)}.`);
+    } else {
+      renderGarage();
+      setGarageMessage(result.reason, true);
+    }
+  });
+}
+if (garageRepairFullBtn) {
+  garageRepairFullBtn.addEventListener('click', () => {
+    const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+    const result = repairCar(saveData, carId, 'full');
+    if (result.ok) {
+      saveAllProgress();
+      renderGarage();
+      setGarageMessage(`Full repair complete for ${formatCredits(result.cost)}.`);
+    } else {
+      renderGarage();
+      setGarageMessage(result.reason, true);
+    }
+  });
+}
+garageUpgradeButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    const carId = CAR_ORDER[garageBrowseIndex] || 'starter';
+    const laneId = button.dataset.lane;
+    const result = purchaseUpgrade(saveData, carId, laneId);
+
+    if (result.ok) {
+      saveAllProgress();
+      renderGarage();
+      setGarageMessage(`${UPGRADE_LANES[laneId].label} upgraded to LV ${result.newLevel}.`);
+    } else {
+      renderGarage();
+      setGarageMessage(result.reason, true);
+    }
+  });
 });
 
 // Keyboard events
@@ -1432,7 +2001,8 @@ musicVolumeSlider.addEventListener('input', () => {
   audioManager.setMusicVolume(val);
   
   musicVolume = val;
-  localStorage.setItem('musicVolume', musicVolume.toString());
+  saveData.settings.musicVolume = musicVolume;
+  saveAllProgress();
   
   const settingsSlider = document.getElementById('musicVolumeSettings');
   if (settingsSlider) {
@@ -1447,7 +2017,8 @@ sfxVolumeSlider.addEventListener('input', () => {
   audioManager.setSfxVolume(val);
 
   sfxVolume = val;
-  localStorage.setItem('sfxVolume', sfxVolume.toString());
+  saveData.settings.sfxVolume = sfxVolume;
+  saveAllProgress();
 
   const settingsSlider = document.getElementById('sfxVolumeSettings');
   if (settingsSlider) {
@@ -1461,7 +2032,8 @@ const ghostTogglePause = document.getElementById('ghostTogglePause');
 const ghostToggleLabel = document.getElementById('ghostToggleLabel');
 ghostTogglePause.addEventListener('change', () => {
   ghostsEnabled = ghostTogglePause.checked;
-  localStorage.setItem('ghostsEnabled', ghostsEnabled.toString());
+  saveData.settings.ghostsEnabled = ghostsEnabled;
+  saveAllProgress();
   ghostToggleLabel.textContent = ghostsEnabled ? 'ON' : 'OFF';
   // Also sync with settings menu toggle
   const settingsToggle = document.getElementById('ghostToggleSettings');
@@ -1543,6 +2115,26 @@ function updateHUD(car) {
 
       if (isNewBest) {
         ghostPlayers[car.playerIndex] = new GhostPlayer(recorder.bestFrames, car.color);
+        if (currentGameMode === GAMEMODE.QUICKRACE && cars.length === 1 && !car.isAI) {
+          const ghostSaved = saveGhost(
+            saveData,
+            tracks[currentTrackIndex].id,
+            car.carId || 'starter',
+            car.currentLapTime,
+            recorder.bestFrames
+          );
+          if (ghostSaved) {
+            saveSavedLeaderboardRecord(
+              saveData,
+              tracks[currentTrackIndex].id,
+              car.currentLapTime,
+              car.score || 0,
+              getPlayerName(),
+              car.carId || 'starter'
+            );
+            saveAllProgress();
+          }
+        }
       } else if (ghostPlayers[car.playerIndex]) {
         ghostPlayers[car.playerIndex].frameIndex = 0;
         ghostPlayers[car.playerIndex].elapsed = 0;
@@ -1621,9 +2213,10 @@ function updateHUD(car) {
     const goalObjective = document.getElementById('campaignGoalObjective');
     const goalStatus = document.getElementById('campaignGoalStatus');
     
-    // Set the static objective text
-    if (goalObjective.textContent !== level.challengeText) {
-      goalObjective.textContent = level.challengeText;
+    // Set the active mastery objective text
+    const activeGoalText = getActiveCampaignGoalText(saveData, level);
+    if (goalObjective.textContent !== activeGoalText) {
+      goalObjective.textContent = activeGoalText;
     }
     
     if (level.targetDriftScore) {
@@ -2024,6 +2617,7 @@ function gameLoop(timestamp) {
 
   update(dt);
   draw();
+  renderGaragePreview(dt);
 
   requestAnimationFrame(gameLoop);
 }
@@ -2043,6 +2637,9 @@ audioManager.setSfxVolume(sfxVolume);
 
 ghostTogglePause.checked = ghostsEnabled;
 ghostToggleLabel.textContent = ghostsEnabled ? 'ON' : 'OFF';
+updateRewardPanel({ show: false, masteryEarned: [], grossCredits: 0, penaltyCredits: 0, creditsEarned: 0, repairEstimate: 0, newUnlocks: [], nextObjective: '--' });
+syncProfileDisplays();
+updateTrackDisplay();
 
 const syncSettingsMenuOnInit = document.getElementById('ghostToggleSettings');
 if (syncSettingsMenuOnInit) {

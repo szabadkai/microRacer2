@@ -119,6 +119,12 @@
       <h1>microRacer 2</h1>
       <p class="subtitle">NEON DRIFT</p>
 
+      <div class="profile-strip">
+        <span class="profile-pill" data-profile-name>Driver: Player</span>
+        <span class="profile-pill" data-profile-car>Car: Starter</span>
+        <span class="profile-pill profile-credits" data-profile-credits>0 CR</span>
+      </div>
+
       <div class="section">
         <label>Select Players</label>
         <div class="player-buttons">
@@ -148,6 +154,7 @@
       </div>
 
       <div class="menu-actions">
+        <button class="secondary-btn" id="garageBtn">Garage</button>
         <button class="secondary-btn" id="settingsBtn">Settings</button>
         <button class="secondary-btn" id="leaderboardBtn">Leaderboard</button>
       </div>
@@ -226,10 +233,114 @@
   <div id="campaignMenu" class="menu-screen hidden">
     <div class="menu-container" style="max-width: 800px; width: 90%;">
       <h2>Campaign Mode</h2>
+      <div class="profile-strip profile-strip-wide">
+        <span class="profile-pill" data-profile-name>Driver: Player</span>
+        <span class="profile-pill" data-profile-car>Car: Starter</span>
+        <span class="profile-pill profile-credits" data-profile-credits>0 CR</span>
+      </div>
       <div id="campaignLevelGrid" class="level-grid">
         <!-- populated by js -->
       </div>
       <button class="secondary-btn" id="campaignBackBtn" style="margin-top: 20px;">Back to Menu</button>
+    </div>
+  </div>
+
+  <!-- Garage Screen -->
+  <div id="garageScreen" class="menu-screen hidden">
+    <div class="menu-container garage-container">
+      <h2>Garage</h2>
+      <div class="profile-strip profile-strip-wide">
+        <span class="profile-pill" data-profile-name>Driver: Player</span>
+        <span class="profile-pill" data-profile-car>Car: Starter</span>
+        <span class="profile-pill profile-credits" data-profile-credits>0 CR</span>
+      </div>
+
+      <div class="garage-shell">
+        <div class="garage-carousel">
+          <button class="nav-btn" id="garagePrevBtn">◀</button>
+          <div class="garage-card">
+            <div class="garage-card-top">
+              <div>
+                <h3 id="garageCarName">Starter</h3>
+                <div id="garageCarRole" class="garage-car-role">Balanced All-Rounder</div>
+              </div>
+              <div id="garageCarStatus" class="garage-status">SELECTED</div>
+            </div>
+            <p id="garageCarDescription" class="garage-description">The stock chassis. Stable, predictable, and still fast enough to win.</p>
+            <p id="garageLockReason" class="garage-lock-reason hidden">Unlocked by default</p>
+
+            <div class="garage-visual-stage">
+              <canvas id="garagePreviewCanvas" width="520" height="280"></canvas>
+              <div class="garage-stage-overlay">
+                <span id="garagePreviewTag" class="garage-stage-pill">Starter chassis</span>
+                <span id="garagePreviewConditionTag" class="garage-stage-pill garage-stage-pill-warn">Race-ready</span>
+              </div>
+            </div>
+
+            <div class="garage-stats">
+              <div class="garage-stat">
+                <span>Accel</span>
+                <div class="garage-stat-bar"><div id="garageStatAccel" class="garage-stat-fill"></div></div>
+              </div>
+              <div class="garage-stat">
+                <span>Top Speed</span>
+                <div class="garage-stat-bar"><div id="garageStatSpeed" class="garage-stat-fill"></div></div>
+              </div>
+              <div class="garage-stat">
+                <span>Grip</span>
+                <div class="garage-stat-bar"><div id="garageStatGrip" class="garage-stat-fill"></div></div>
+              </div>
+              <div class="garage-stat">
+                <span>Nitro</span>
+                <div class="garage-stat-bar"><div id="garageStatNitro" class="garage-stat-fill"></div></div>
+              </div>
+            </div>
+
+            <div class="garage-condition">
+              <div class="garage-condition-head">
+                <span class="garage-condition-label">Condition</span>
+                <span id="garageConditionValue" class="garage-condition-value">100%</span>
+              </div>
+              <div id="garageConditionStatus" class="garage-condition-status">Race-ready</div>
+              <div id="garageRepairEstimate" class="garage-condition-note">Repair estimate: 0 CR</div>
+              <div class="garage-repair-actions">
+                <button class="secondary-btn garage-repair-btn" id="garageRepairPatchBtn">
+                  <span>Patch Job</span>
+                  <span id="garageRepairPatchCost">0 CR</span>
+                </button>
+                <button class="secondary-btn garage-repair-btn" id="garageRepairFullBtn">
+                  <span>Full Repair</span>
+                  <span id="garageRepairFullCost">0 CR</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <button class="nav-btn" id="garageNextBtn">▶</button>
+        </div>
+
+        <div class="garage-upgrades">
+          <button class="secondary-btn garage-upgrade-btn" id="garageUpgradeEngineBtn" data-lane="engine">
+            <span class="garage-upgrade-label">Engine</span>
+            <span id="garageEngineLevel" class="garage-upgrade-level">LV 0/2</span>
+            <span id="garageEngineCost" class="garage-upgrade-cost">200 CR</span>
+          </button>
+          <button class="secondary-btn garage-upgrade-btn" id="garageUpgradeGripBtn" data-lane="grip">
+            <span class="garage-upgrade-label">Grip</span>
+            <span id="garageGripLevel" class="garage-upgrade-level">LV 0/2</span>
+            <span id="garageGripCost" class="garage-upgrade-cost">200 CR</span>
+          </button>
+          <button class="secondary-btn garage-upgrade-btn" id="garageUpgradeNitroBtn" data-lane="nitro">
+            <span class="garage-upgrade-label">Nitro</span>
+            <span id="garageNitroLevel" class="garage-upgrade-level">LV 0/2</span>
+            <span id="garageNitroCost" class="garage-upgrade-cost">250 CR</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-actions">
+        <button class="start-btn" id="garageSelectBtn">Select Car</button>
+        <button class="secondary-btn" id="garageBackBtn">Back</button>
+      </div>
     </div>
   </div>
 
@@ -313,6 +424,17 @@
         <p>Drift Score: <span id="finalScoreValue2">0</span></p>
       </div>
     </div>
+    <div id="rewardPanel" class="reward-panel hidden">
+      <h2>Rewards</h2>
+      <p>Mastery Earned: <span id="rewardMasteryValue">None</span></p>
+      <p>Gross Reward: <span id="rewardGrossValue">0</span></p>
+      <p>Contact Penalties: <span id="rewardPenaltyValue">0</span></p>
+      <p>Net Credits: <span id="rewardCreditsValue">0</span></p>
+      <p>Repair Estimate: <span id="rewardRepairValue">0</span></p>
+      <p>Unlocks: <span id="rewardUnlocksValue">None</span></p>
+      <p>Next Goal: <span id="rewardNextRewardValue">--</span></p>
+    </div>
+    <button class="secondary-btn menu-action-btn hidden" id="garageResultsBtn">Garage</button>
     <div id="quickRaceActions" class="menu-actions-column">
       <button class="start-btn menu-action-btn" id="restartBtn">Rematch</button>
       <button class="secondary-btn menu-action-btn" id="menuBtn">Back to Menu</button>
