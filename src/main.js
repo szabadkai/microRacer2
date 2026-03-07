@@ -1188,6 +1188,10 @@ function startGame() {
   cars = [];
   ghostRecorders = [];
   ghostPlayers = [];
+  particles.particles = [];
+
+  // Remove existing AI from joinedPlayers before populating the next level's roster
+  joinedPlayers = joinedPlayers.filter(p => !p.isAI);
 
   // Create track with selected theme, shape, and seed
   const selectedTrack = tracks[currentTrackIndex];
@@ -1219,15 +1223,15 @@ function startGame() {
     }
     
     joinedPlayers.push({ gamepadIndex: defaultGamepadIndex, controls: controlsType, controlKeys: controls.keys });
-    
-    // Add AI if campaign mode
-    if (currentGameMode === GAMEMODE.CAMPAIGN) {
-      const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
-      if (level.ai && level.ai.length > 0) {
-        level.ai.forEach(difficulty => {
-           joinedPlayers.push({ isAI: true, difficulty });
-        });
-      }
+  }
+
+  // Add AI if campaign mode
+  if (currentGameMode === GAMEMODE.CAMPAIGN) {
+    const level = CAMPAIGN_LEVELS[currentCampaignLevelIndex];
+    if (level.ai && level.ai.length > 0) {
+      level.ai.forEach(difficulty => {
+         joinedPlayers.push({ isAI: true, difficulty });
+      });
     }
   }
 
@@ -1350,10 +1354,12 @@ function startGame() {
       menuNav.setEnabled(true);
       uiLayer.classList.remove('hidden'); // Keep UI visible behind it if desired
       audioManager.setEngineMuted(true);
+      draw(); // Draw immediate state behind onboarding menu
       return; // Wait for continue button
     }
   }
 
+  draw(); // Ensure canvas matches new track before browser composites DOM over top
   startCountdown();
 }
 
