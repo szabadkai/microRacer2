@@ -27,7 +27,7 @@ export class Car {
 
     // Steering smoothing
     this.smoothedSteering = 0;    // Current smoothed steering value
-    this.steeringSmoothing = 8;   // How fast steering responds (higher = faster, more direct)
+    this.steeringSmoothing = 5;   // How fast steering responds (higher = faster, more direct)
 
     // State
     this.isDrifting = false;

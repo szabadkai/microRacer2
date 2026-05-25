@@ -1843,13 +1843,16 @@ if (steeringZone) {
   let activeTouchId = null;
   let startX = 0;
   let startY = 0;
-  const steerThreshold = 25; // Deadzone: pixels to drag before steering registers
-  const maxSteerDistance = 120; // pixels to drag for full steering (lower value = higher sensitivity)
+  const steerThreshold = 30;
+  const maxSteerDistance = 200;
+
+  const zoneRect = () => steeringZone.getBoundingClientRect();
 
   const updateSteering = (currentX, currentY) => {
     if (steerIndicator) {
-      steerIndicator.style.left = `${currentX}px`;
-      steerIndicator.style.top = `${currentY}px`;
+      const r = zoneRect();
+      steerIndicator.style.left = `${currentX - r.left}px`;
+      steerIndicator.style.top = `${currentY - r.top}px`;
     }
 
     const deltaX = currentX - startX;
@@ -1858,11 +1861,13 @@ if (steeringZone) {
     if (deltaX < -steerThreshold) {
       input.keys['ArrowLeft'] = true;
       input.keys['ArrowRight'] = false;
-      steeringValue = -Math.min((Math.abs(deltaX) - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
+      const linear = Math.min((Math.abs(deltaX) - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
+      steeringValue = -(linear * linear);
     } else if (deltaX > steerThreshold) {
       input.keys['ArrowRight'] = true;
       input.keys['ArrowLeft'] = false;
-      steeringValue = Math.min((deltaX - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
+      const linear = Math.min((deltaX - steerThreshold) / (maxSteerDistance - steerThreshold), 1.0);
+      steeringValue = linear * linear;
     } else {
       input.keys['ArrowLeft'] = false;
       input.keys['ArrowRight'] = false;
@@ -1885,8 +1890,9 @@ if (steeringZone) {
     input.keys['ArrowUp'] = true;
 
     if (steerIndicator) {
-      steerIndicator.style.left = `${startX}px`;
-      steerIndicator.style.top = `${startY}px`;
+      const r = zoneRect();
+      steerIndicator.style.left = `${startX - r.left}px`;
+      steerIndicator.style.top = `${startY - r.top}px`;
       steerIndicator.classList.remove('hidden');
     }
   };
